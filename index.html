@@ -1417,7 +1417,7 @@
  // attach clicks to cs-cards (only if they have a real src)
  document.querySelectorAll('.cs-card').forEach(card => {
    const img = card.querySelector('.cs-card-image img');
-   const src = img ? img.src : card.dataset.lbSrc;
+   const src = card.dataset.lbSrc || (img ? img.src : '');
    const cap = card.dataset.lbCaption || '';
    if (src) card.addEventListener('click', () => openLb(src, cap));
  });
