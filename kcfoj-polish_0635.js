@@ -38,7 +38,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--kc-teal)!important;
 iframe[src*="youtube"],iframe[src*="vimeo"]{border-radius:12px!important;box-shadow:var(--kc-shadow)!important}
 
 /* Form fields */
-input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),textarea,select{background-color:rgba(255,255,255,.6)!important;border-color:rgba(31,42,46,.28)!important;color:var(--kc-ink)!important;transition:border-color .25s,box-shadow .25s!important}
+input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),textarea,select{;border-color:rgba(31,42,46,.28)!important;color:var(--kc-ink)!important;transition:border-color .25s,box-shadow .25s!important}
 input::placeholder,textarea::placeholder{color:rgba(31,42,46,.5)!important}
 input:focus,textarea:focus,select:focus{outline:none!important;border-color:var(--kc-teal)!important;box-shadow:0 0 0 3px rgba(0,102,120,.16)!important}
 
@@ -47,7 +47,7 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
 
 /* Footer: cream wash over the mandala so text, logo and icons stay readable.
    Raise the .9 to hide more of the mandala, lower it to show more. */
-.kc-footer-bg{box-shadow:inset 0 0 0 200vmax rgba(246,240,230,.9)!important}
+.kc-footer-bg{box-shadow:inset 0 0 0 200vmax rgba(246,240,230,.95)!important}
 .kc-footer-img{opacity:.1!important}
 .kc-footer-solid{background-color:var(--kc-cream)!important}
 .kc-footer :is(p,a,span,li,div,small,label,h1,h2,h3,h4,h5,h6):not(.kc-btn,.kc-btn-outline,.kc-btn *,.kc-btn-outline *){color:var(--kc-ink)!important;text-shadow:none!important}
