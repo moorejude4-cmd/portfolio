@@ -1300,3 +1300,70 @@ btn.id = 'kc-compass';
     try { flags(); } catch (e) { if (window.console) console.warn('KCFOJ ribbon:', e); }
   };
 })();
+
+/* ===== Part 11 (add-on, temporary): banner check =====
+   Does nothing for visitors. Only when the address ends in #kcdebug, it shows
+   a box at the top of the screen listing the wide pictures near the top of the
+   page and why the script did or did not treat each one as the banner.
+   Safe to delete once the word band is fixed. */
+(function () {
+  var D = document;
+  function cls(n) {
+    var c = typeof n.className === 'string' ? n.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).join('.') : '';
+    return n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + (c ? '.' + c : '');
+  }
+  function path(el) {
+    var out = [];
+    for (var n = el, k = 0; n && n !== D.body && k < 5; n = n.parentElement, k++) out.unshift(cls(n));
+    return out.join(' > ');
+  }
+  function picture(el) {
+    if (/^(IMG|PICTURE|VIDEO|CANVAS|SVG)$/i.test(el.tagName)) return el.tagName.toLowerCase();
+    if (getComputedStyle(el).backgroundImage.indexOf('url(') > -1) return 'background';
+    if (getComputedStyle(el, '::before').backgroundImage.indexOf('url(') > -1) return 'background on ::before';
+    if (getComputedStyle(el, '::after').backgroundImage.indexOf('url(') > -1) return 'background on ::after';
+    return '';
+  }
+  function report() {
+    if (location.hash !== '#kcdebug' || !D.body) return;
+    var vw = D.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
+    var found = D.querySelector('.kc-hero, .kc-hero-soft, .kc-hero-pre');
+    var lines = ['KCFOJ banner check | screen ' + window.innerWidth + 'x' + vh + ' | page ' + location.pathname,
+      'banner found by script: ' + (found ? 'YES ' + path(found) : 'NO') + ' | word band on page: ' + (D.querySelector('.kc-band') ? 'YES' : 'NO')];
+    ['header', '.kc-header'].forEach(function (s) {
+      var hs = [].map.call(D.querySelectorAll(s), function (h) { return cls(h) + ' ' + Math.round(h.getBoundingClientRect().height) + 'px'; });
+      lines.push(s + ': ' + (hs.length ? hs.join(' | ') : 'none'));
+    });
+    var all = D.body.querySelectorAll('*'), n = 0;
+    for (var i = 0; i < all.length && n < 6; i++) {
+      var el = all[i], r = el.getBoundingClientRect(), top = r.top + window.scrollY;
+      if (r.width < vw * 0.8 || r.height < 100 || top > 900 || el.id === 'kc-check') continue;
+      var pic = picture(el);
+      if (!pic) continue;
+      var why = [];
+      ['header', 'nav', 'a', 'button', '.kc-header', '.kc-card', '.kc-tile', '.kc-shadow', '.kc-veil', '.kc-lb'].forEach(function (s) {
+        var a = el.closest(s);
+        if (a) why.push('inside ' + s + (a === el ? ' (itself)' : ' (' + cls(a) + ')'));
+      });
+      if (r.width < vw - 6) why.push('width ' + Math.round(r.width) + ' of ' + vw);
+      if (r.height < 160) why.push('only ' + Math.round(r.height) + 'px tall');
+      if (r.height > vh * 1.25) why.push('too tall (' + Math.round(r.height) + 'px)');
+      if (top > 700) why.push('starts ' + Math.round(top) + 'px down');
+      if (!/^(img|picture|video|background)$/.test(pic)) why.push('picture type not recognized');
+      n++;
+      lines.push(n + '. ' + pic + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' at ' + Math.round(top) + 'px: ' + (why.length ? why.join(', ') : 'looks usable') + '\n   ' + path(el));
+    }
+    if (!n) lines.push('No wide pictures found near the top of the page.');
+    var box = D.getElementById('kc-check');
+    if (!box) {
+      box = D.createElement('pre');
+      box.id = 'kc-check';
+      box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;max-height:60vh;overflow:auto;margin:0;padding:10px;background:#fff;color:#111;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;border:2px solid #1F2A2E;border-radius:6px';
+      D.body.appendChild(box);
+    }
+    box.textContent = lines.join('\n');
+  }
+  setTimeout(report, 4500);
+  setTimeout(report, 10000);
+  window.addEventListener('hashchange', function () { setTimeout(report, 300); });
+})();
