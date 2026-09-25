@@ -414,7 +414,8 @@ html.kc-lock{overflow:hidden}
     var vw = R.clientWidth || window.innerWidth, all = D.body.querySelectorAll('*');
     for (var i = 0; i < all.length; i++) {
       var el = all[i];
-      if (el.closest('header, nav, a, button, .kc-veil, .kc-header, .kc-lb, .kc-card, .kc-tile, .kc-shadow, .kc-band')) continue;
+      // Square puts the banner inside the page's <header>, so only the nav bar itself is off limits
+      if (el.closest('nav, a, button, .kc-veil, .kc-header, .kc-lb, .kc-card, .kc-tile, .kc-shadow, .kc-band')) continue;
       var r = rect(el);
       if (r.width < vw - 6 || r.height < 160 || r.height > window.innerHeight * 1.25 || r.top + window.scrollY > 700) continue;
       if (!/^(IMG|PICTURE|VIDEO)$/.test(el.tagName) && getComputedStyle(el).backgroundImage.indexOf('url(') < 0) continue;
