@@ -1,4 +1,4 @@
-/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.2).
+/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.3, Red Book palette).
    Loaded on every page by one short script tag in Square's Tracking tools.
    Part 1 is the CSS. Part 2 finds your buttons, cards, gallery tiles and
    footer by their current colors and tags them, since Square doesn't
@@ -7,7 +7,7 @@
 (function () {
   var css = `
 :root{
-  --kc-teal:#006678; --kc-teal-deep:#004B58; --kc-cream:#F6F0E6; --kc-ink:#1F2A2E;
+  --kc-accent:#8B2A24; --kc-accent-deep:#6A1D19; --kc-cream:#F6F0E6; --kc-ink:#1F2A2E;
   --kc-radius:8px; --kc-ease:cubic-bezier(.22,.61,.36,1);
   --kc-shadow:0 12px 30px -14px rgba(31,42,46,.38);
   --kc-lift:0 22px 44px -16px rgba(31,42,46,.45);
@@ -16,31 +16,31 @@
 /* Type and small details */
 html{scroll-behavior:smooth}
 body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-::selection{background:var(--kc-teal);color:#fff}
+::selection{background:var(--kc-accent);color:#fff}
 h1,h2,h3{letter-spacing:-.01em!important;text-wrap:balance}
 p{line-height:1.7!important;text-wrap:pretty}
-a:focus-visible,button:focus-visible{outline:2px solid var(--kc-teal)!important;outline-offset:3px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--kc-accent)!important;outline-offset:3px}
 
 /* Cream background and calm header (only kicks in if the old gray or peach is still set) */
 .kc-cream{background-color:var(--kc-cream)!important}
-.kc-header{background-color:var(--kc-cream)!important;border-bottom:1px solid rgba(0,102,120,.14)!important}
+.kc-header{background-color:var(--kc-cream)!important;border-bottom:1px solid rgba(139,42,36,.14)!important}
 
-/* One teal for every button */
-.kc-btn{background-color:var(--kc-teal)!important;border-color:var(--kc-teal)!important;color:#fff!important;border-radius:var(--kc-radius)!important;letter-spacing:.04em!important;transition:background-color .3s var(--kc-ease),box-shadow .3s var(--kc-ease),transform .3s var(--kc-ease)!important}
+/* One Red Book red for every button */
+.kc-btn{background-color:var(--kc-accent)!important;border-color:var(--kc-accent)!important;color:#fff!important;border-radius:var(--kc-radius)!important;letter-spacing:.04em!important;transition:background-color .3s var(--kc-ease),box-shadow .3s var(--kc-ease),transform .3s var(--kc-ease)!important}
 .kc-btn-join{border-radius:0 var(--kc-radius) var(--kc-radius) 0!important}
-.kc-btn-outline{background-color:transparent!important;border-color:var(--kc-teal)!important;color:var(--kc-teal)!important;border-radius:var(--kc-radius)!important;letter-spacing:.04em!important;transition:background-color .3s var(--kc-ease),color .3s var(--kc-ease)!important}
+.kc-btn-outline{background-color:transparent!important;border-color:var(--kc-accent)!important;color:var(--kc-accent)!important;border-radius:var(--kc-radius)!important;letter-spacing:.04em!important;transition:background-color .3s var(--kc-ease),color .3s var(--kc-ease)!important}
 .kc-btn *,.kc-btn-outline *{color:inherit!important}
 
 /* Cards, date pills, gallery tiles, video */
 .kc-card{border:0!important;border-radius:14px!important;overflow:hidden!important;box-shadow:var(--kc-shadow)!important;transition:transform .45s var(--kc-ease),box-shadow .45s var(--kc-ease)!important}
-.kc-pill{background-color:rgba(0,102,120,.09)!important;color:var(--kc-teal)!important;letter-spacing:.06em!important}
+.kc-pill{background-color:rgba(139,42,36,.09)!important;color:var(--kc-accent)!important;letter-spacing:.06em!important}
 .kc-tile{box-shadow:var(--kc-shadow)!important;transition:transform .45s var(--kc-ease),box-shadow .45s var(--kc-ease)!important}
 iframe[src*="youtube"],iframe[src*="vimeo"]{border-radius:12px!important;box-shadow:var(--kc-shadow)!important}
 
 /* Form fields */
 input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),textarea,select{border-color:rgba(31,42,46,.28)!important;color:var(--kc-ink)!important;transition:border-color .25s,box-shadow .25s!important}
 input::placeholder,textarea::placeholder{color:rgba(31,42,46,.5)!important}
-input:focus,textarea:focus,select:focus{outline:none!important;border-color:var(--kc-teal)!important;box-shadow:0 0 0 3px rgba(0,102,120,.16)!important}
+input:focus,textarea:focus,select:focus{outline:none!important;border-color:var(--kc-accent)!important;box-shadow:0 0 0 3px rgba(139,42,36,.16)!important}
 
 /* Nav links: spaced caps with an underline that fades in on hover */
 nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:.12em!important;font-size:.9em;text-decoration:underline!important;text-decoration-color:transparent!important;text-decoration-thickness:1px!important;text-underline-offset:.45em;transition:text-decoration-color .3s,color .3s}
@@ -57,11 +57,11 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
 
 /* Hover effects, mouse only so phones don't get stuck mid-hover */
 @media (hover:hover){
-  .kc-btn:not([disabled]):hover{background-color:var(--kc-teal-deep)!important;border-color:var(--kc-teal-deep)!important;transform:translateY(-1px);box-shadow:0 10px 22px -10px rgba(0,102,120,.6)!important}
-  .kc-btn-outline:hover{background-color:var(--kc-teal)!important;color:#fff!important}
+  .kc-btn:not([disabled]):hover{background-color:var(--kc-accent-deep)!important;border-color:var(--kc-accent-deep)!important;transform:translateY(-1px);box-shadow:0 10px 22px -10px rgba(139,42,36,.6)!important}
+  .kc-btn-outline:hover{background-color:var(--kc-accent)!important;color:#fff!important}
   .kc-card:hover,.kc-tile:hover{transform:translateY(-4px);box-shadow:var(--kc-lift)!important}
   nav a:not(.kc-btn):not(.kc-btn-outline):hover{text-decoration-color:currentColor!important}
-  .kc-footer a:not(.kc-btn,.kc-btn-outline):hover,.kc-footer a:not(.kc-btn,.kc-btn-outline):hover *{color:var(--kc-teal)!important}
+  .kc-footer a:not(.kc-btn,.kc-btn-outline):hover,.kc-footer a:not(.kc-btn,.kc-btn-outline):hover *{color:var(--kc-accent)!important}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 `;
@@ -245,7 +245,7 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
   var fine = mq('(hover: hover) and (pointer: fine)');
 
   var css = `
-:root{--kc-gold:#A8844F;--kc-night:#0E1517;--kc-deep:#2A6476;--kc-paper:#F5F0E7;--kc-e:cubic-bezier(.2,.7,.2,1)}
+:root{--kc-gold:#A8844F;--kc-night:#0E1517;--kc-deep:#8B2A24;--kc-paper:#F5F0E7;--kc-e:cubic-bezier(.2,.7,.2,1)}
 html.kc-lock{overflow:hidden}
 
 /* 1. Arrival */
@@ -266,7 +266,7 @@ html.kc-lock{overflow:hidden}
 @keyframes kcSurface{from{filter:blur(18px) saturate(.5);transform:scale(1.14);opacity:.35}to{filter:blur(0) saturate(1);transform:scale(1);opacity:1}}
 @keyframes kcSurfaceSoft{from{filter:blur(18px);opacity:.35}to{filter:blur(0);opacity:1}}
 @keyframes kcBreathe{from{transform:scale(1)}to{transform:scale(1.07)}}
-.kc-aurora{position:absolute;inset:0;background-size:180% 180%!important;z-index:1;pointer-events:none;mix-blend-mode:soft-light;opacity:.7;background:radial-gradient(38% 46% at 22% 32%,rgba(235,163,113,.95),transparent 70%),radial-gradient(42% 52% at 78% 68%,rgba(0,102,120,.85),transparent 70%),radial-gradient(30% 40% at 58% 18%,rgba(255,244,226,.9),transparent 70%);animation:kcDrift 24s ease-in-out infinite alternate}
+.kc-aurora{position:absolute;inset:0;background-size:180% 180%!important;z-index:1;pointer-events:none;mix-blend-mode:soft-light;opacity:.7;background:radial-gradient(38% 46% at 22% 32%,rgba(214,168,98,.85),transparent 70%),radial-gradient(42% 52% at 78% 68%,rgba(139,42,36,.7),transparent 70%),radial-gradient(30% 40% at 58% 18%,rgba(255,244,226,.9),transparent 70%);animation:kcDrift 24s ease-in-out infinite alternate}
 @keyframes kcDrift{from{background-position:0% 0%}to{background-position:100% 100%}}
 
 /* 3. Scroll reveals and the word band */
@@ -275,7 +275,7 @@ html.kc-lock{overflow:hidden}
 .kc-rv-h{opacity:0;filter:blur(10px);transform:translateY(.4em)}
 .kc-rv.kc-in{opacity:1;transform:none}
 .kc-rv-h.kc-in{opacity:1;filter:blur(0);transform:none}
-.kc-band{position:relative;overflow:hidden;border-block:1px solid rgba(42,100,118,.18);padding-block:clamp(14px,2.2vw,22px)}
+.kc-band{position:relative;overflow:hidden;border-block:1px solid rgba(139,42,36,.2);padding-block:clamp(14px,2.2vw,22px)}
 .kc-band-track{display:flex;width:max-content;animation:kcMarq 60s linear infinite}
 .kc-band span{display:inline-flex;align-items:center;gap:.9em;padding-inline:.45em;white-space:nowrap;font:italic 400 clamp(22px,3.6vw,42px)/1.15 'Playfair Display',Georgia,serif;color:var(--kc-deep)}
 .kc-band i{font-style:normal;color:var(--kc-gold);font-size:.5em}
