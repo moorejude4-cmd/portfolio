@@ -984,3 +984,99 @@ btn.id = 'kc-compass';
    try { seals(); } catch (e) { if (window.console) console.warn('KCFOJ seals:', e); }
  };
 })();
+/* ===== Part 7 (add-on): manuscript layouts for the About page =====
+  Styles three patterns you type in Square as ordinary text:
+  1. Epigraph: a short quote (a quote block, or a paragraph in quotation
+     marks followed by a short name line like "C. G. Jung").
+  2. Timeline: paragraphs or list items that start with a year and a
+     separator, like "1988: First gathering", under a heading containing
+     Began, History, Decades, Years, Timeline or Milestones.
+  3. Vocabulary: lines like "Shadow: the parts of ourselves we do not see",
+     under a heading containing Vocabulary, Lexicon or Glossary.
+  Paste at the very end of the file, after Part 6. */
+(function () {
+ var D = document;
+ var css = `
+.kc-epigraph{max-width:30em!important;margin:0 auto 1.2em!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;text-align:center!important;font:italic 400 clamp(20px,2.4vw,26px)/1.45 'Playfair Display',Georgia,serif!important;color:var(--kc-ink)!important;text-wrap:balance}
+.kc-epigraph *{font:inherit!important;text-align:inherit!important;color:inherit!important;margin:0!important}
+.kc-epigraph::before{content:"\\2726";display:block;margin:0 auto .55em;font:normal 12px/1 Georgia,serif;color:var(--kc-gold)}
+.kc-epigraph-by{text-align:center!important;margin:0 auto 2.4em!important;font:500 11px/1.4 'Libre Franklin',system-ui,sans-serif!important;letter-spacing:.3em!important;text-transform:uppercase;color:var(--kc-accent)!important}
+.kc-tl-list{list-style:none!important;padding-left:0!important;margin-left:0!important}
+.kc-tl{position:relative;list-style:none!important;min-height:2.6em;margin:0!important;padding:.55em 0 .55em 104px!important;text-align:left!important}
+.kc-tl::before{content:"";position:absolute;left:86px;top:0;bottom:0;width:1px;background:rgba(168,132,79,.55)}
+.kc-tl::after{content:"";position:absolute;left:82px;top:1.05em;width:9px;height:9px;background:var(--kc-accent);transform:rotate(45deg);box-shadow:0 0 0 3px var(--kc-cream)}
+.kc-tl-year{position:absolute;left:0;top:.45em;width:70px;text-align:right;font:400 1.3em/1.25 'Playfair Display',Georgia,serif;font-variant-numeric:lining-nums tabular-nums;color:var(--kc-accent)}
+.kc-lex{position:relative;min-height:2.9em;margin:0!important;padding:.8em 0 .8em 172px!important;border-bottom:1px solid rgba(168,132,79,.35);text-align:left!important}
+.kc-lex-term{position:absolute;left:0;top:.62em;width:152px;font:italic 400 1.15em/1.3 'Playfair Display',Georgia,serif;color:var(--kc-accent)}
+@media (max-width:600px){.kc-tl{padding-left:80px!important}.kc-tl::before{left:64px}.kc-tl::after{left:60px}.kc-tl-year{width:52px;font-size:1.1em}.kc-lex{padding-left:0!important}.kc-lex-term{position:static;display:block;width:auto;margin-bottom:.2em}}
+`;
+ var tag = D.createElement('style');
+ tag.textContent = css;
+ (D.head || D.documentElement).appendChild(tag);
+ var YEAR = /^((?:1[89]|20)\d0s|(?:1[89]|20)\d\d)\s*[\u00B7\u2022:|\-\u2013\u2014]\s*(?=\S)/;
+ var TERM = /^([A-Z][A-Za-z'\-]*(?:\s+[A-Za-z'\-]+){0,3})\s*(?::|\s[\-\u2013\u2014])\s+(?=\S)/;
+ var QUOTED = /^["\u201C\u2018'][\s\S]{8,}["\u201D\u2019']$/;
+ function skip(el) { return !!el.closest('header, footer, nav, form, .kc-card, .kc-shadow, .kc-band, .kc-lb, .kc-veil, .kc-seal'); }
+ // Removes the first n characters of an element's text, across any bold or italic wrappers
+ function peel(el, n) {
+   var w = D.createTreeWalker(el, NodeFilter.SHOW_TEXT), t;
+   while (n > 0 && (t = w.nextNode())) {
+     var len = t.nodeValue.length;
+     if (len <= n) { n -= len; t.nodeValue = ''; } else { t.nodeValue = t.nodeValue.slice(n); n = 0; }
+   }
+ }
+ // Moves a matched label (year or term) into its own span at the start of the line
+ function label(el, re, cls) {
+   var raw = el.textContent, lead = raw.match(/^\s*/)[0].length, m = raw.slice(lead).match(re);
+   if (!m) return false;
+   peel(el, lead + m[0].length);
+   var s = D.createElement('span');
+   s.className = cls;
+   s.textContent = m[1];
+   el.insertBefore(s, el.firstChild);
+   return true;
+ }
+ function about() {
+   var els = [].filter.call(D.querySelectorAll('h1, h2, h3, h4, p, li, blockquote'), function (el) { return !skip(el) && el.textContent.trim(); });
+   var mode = null;
+   els.forEach(function (el, i) {
+     if (el.closest('.kc-epigraph') && !el.classList.contains('kc-epigraph')) return;
+     var t = el.textContent.trim(), k = el.dataset.kcAbout;
+     // Square sometimes redraws text; if our label went missing, set the line up again
+     if (k === 'tl' && !el.querySelector('.kc-tl-year')) k = el.dataset.kcAbout = '';
+     if (k === 'lex' && !el.querySelector('.kc-lex-term')) k = el.dataset.kcAbout = '';
+     if (/^H[1-4]$/.test(el.tagName)) {
+       mode = /vocabulary|lexicon|glossary/i.test(t) ? 'lex' : /began|history|decades|years|timeline|milestones/i.test(t) ? 'tl' : null;
+       return;
+     }
+     if (k) return;
+     if (mode === 'tl' && label(el, YEAR, 'kc-tl-year')) {
+       el.dataset.kcAbout = 'tl';
+       el.classList.add('kc-tl');
+       if (el.tagName === 'LI' && el.parentElement) el.parentElement.classList.add('kc-tl-list');
+       return;
+     }
+     if (mode === 'lex' && t.length > 12 && label(el, TERM, 'kc-lex-term')) {
+       el.dataset.kcAbout = 'lex';
+       el.dataset.kcInitial = 'skip';          // keeps Part 4 from giving a definition an initial
+       el.classList.remove('kc-initial');
+       el.classList.add('kc-lex');
+       return;
+     }
+     var next = null;
+     for (var j = i + 1; j < els.length && !next; j++) if (!el.contains(els[j])) next = els[j];
+     var byLine = next && !/^H[1-4]$/.test(next.tagName) && !next.dataset.kcAbout && next.textContent.trim().length <= 48;
+     if (t.length <= 220 && (el.tagName === 'BLOCKQUOTE' || (QUOTED.test(t) && byLine))) {
+       el.dataset.kcAbout = 'epi';
+       el.classList.add('kc-epigraph');
+       if (byLine) { next.dataset.kcAbout = 'by'; next.classList.add('kc-epigraph-by'); }
+     }
+   });
+ }
+ var prev = window.KCFOJ_wow;
+ window.KCFOJ_wow = function () {
+   // Runs before the other parts so definitions are marked before Part 4 looks for initials
+   try { about(); } catch (e) { if (window.console) console.warn('KCFOJ about:', e); }
+   if (prev) prev();
+ };
+})();
