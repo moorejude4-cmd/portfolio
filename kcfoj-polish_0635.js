@@ -1080,3 +1080,56 @@ btn.id = 'kc-compass';
    if (prev) prev();
  };
 })();
+/* ===== Part 8 (add-on): Shadow quote rotation =====
+  A first visit keeps the Shadow section's original quote. Each later visit
+  shows the next quote in the list, and it stays the same for that whole
+  visit. Edit QUOTES to change the set; the first entry is the default.
+  Paste at the very end of the file, after Part 7. */
+(function () {
+ var D = document;
+ var QUOTES = [
+   'Who looks outside, dreams; who looks inside, awakes.',                                             // Letter to Fanny Bowditch, 22 October 1916 (Letters, vol. 1)
+   'One does not become enlightened by imagining figures of light, but by making the darkness conscious.', // "The Philosophical Tree," Alchemical Studies, CW 13, para. 335
+   'Knowing your own darkness is the best method for dealing with the darknesses of other people.',       // Letter to Kendig B. Cully, 25 September 1937 (Letters, vol. 1)
+   'When an inner situation is not made conscious, it happens outside, as fate.',                         // Aion, CW 9ii, para. 126
+   'Everything that irritates us about others can lead us to an understanding of ourselves.'              // Memories, Dreams, Reflections
+ ];
+ var css = `
+.kc-shadow-q.kc-q-long{font-size:clamp(28px,4.8vw,60px)!important;max-width:19ch!important}
+`;
+ var tag = D.createElement('style');
+ tag.textContent = css;
+ (D.head || D.documentElement).appendChild(tag);
+ // One quote per visit: the first visit gets the default, later visits step through the list
+ var idx = null;
+ function pick() {
+   try {
+     var now = sessionStorage.getItem('kcQuoteNow');
+     if (now !== null && QUOTES[+now]) return +now;
+     var visits = +(localStorage.getItem('kcQuoteVisits') || 0);
+     var i = visits % QUOTES.length;
+     localStorage.setItem('kcQuoteVisits', String(visits + 1));
+     sessionStorage.setItem('kcQuoteNow', String(i));
+     return i;
+   } catch (e) { return 0; }
+ }
+ function rotate() {
+   var q = D.querySelector('.kc-shadow-q');
+   if (!q || q.dataset.kcQuote) return;
+   if (idx === null) idx = pick();
+   q.dataset.kcQuote = String(idx);
+   if (idx === 0) return; // the original quote stays exactly as it is
+   for (var n = q.firstChild; n; n = n.nextSibling) {
+     if (n.nodeType === 3) {
+       n.nodeValue = QUOTES[idx];
+       q.classList.toggle('kc-q-long', QUOTES[idx].length > 70);
+       return;
+     }
+   }
+ }
+ var prev = window.KCFOJ_wow;
+ window.KCFOJ_wow = function () {
+   if (prev) prev();
+   try { rotate(); } catch (e) { if (window.console) console.warn('KCFOJ quotes:', e); }
+ };
+})();
