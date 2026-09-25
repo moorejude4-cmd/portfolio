@@ -1,4 +1,4 @@
-/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.3, Red Book palette).
+/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.4, Red Book palette).
    Loaded on every page by one short script tag in Square's Tracking tools.
    Part 1 is the CSS. Part 2 finds your buttons, cards, gallery tiles and
    footer by their current colors and tags them, since Square doesn't
@@ -372,8 +372,17 @@ html.kc-lock{overflow:hidden}
       setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, 1400);
     }
     v.addEventListener('click', lift);
-    setTimeout(lift, 2900);
-    setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); veilUp = false; }, 5200);
+    // Phones keep showing the previous page until this one paints, so time the hold from the
+    // moment the drawing animation starts (that is when the veil becomes visible)
+    var armed = false;
+    function arm() {
+      if (armed) return;
+      armed = true;
+      setTimeout(lift, 2700);
+      setTimeout(function () { lift(); if (v.parentNode) v.parentNode.removeChild(v); }, 5500);
+    }
+    v.addEventListener('animationstart', arm);
+    setTimeout(arm, 7000);
   }
 
   // 2. Hero: surfaces from a blur, then slowly breathes under a drifting aurora
@@ -419,30 +428,52 @@ html.kc-lock{overflow:hidden}
   }
 
   // 3a. Word band under the hero
-  var bandEl = null, bandFailed = false;
-  function bandOk() { var b = rect(bandEl); return b.width >= window.innerWidth * 0.85 && b.height >= 20; }
+  var bandEl = null, bandFailed = false, H = 'h1, h2, h3';
+  // The band has to be full width, sit below the banner, above the next heading, and not be clipped
+  function bandFits(hb, h) {
+    var b = rect(bandEl);
+    if (b.width < window.innerWidth * 0.85 || b.height < 20 || b.top < hb - 2) return false;
+    if (h ? b.bottom > rect(h).top + 2 : b.top > hb + 240) return false;
+    for (var a = bandEl.parentElement; a && a !== D.body && a !== R; a = a.parentElement) {
+      var st2 = getComputedStyle(a);
+      if (st2.display === 'none' || st2.visibility === 'hidden' || parseFloat(st2.opacity) < 0.05) return false;
+      if (st2.overflowX !== 'visible' || st2.overflowY !== 'visible') {
+        var ar = rect(a);
+        if (b.top < ar.top - 1 || b.bottom > ar.bottom + 1 || b.left < ar.left - 2 || b.right > ar.right + 2) return false;
+      }
+    }
+    return true;
+  }
   function band() {
     if (!heroEl || bandFailed || (bandEl && D.contains(bandEl))) return;
-    var hb = rect(heroEl).bottom, hs = D.querySelectorAll('h1, h2'), h = null, i;
-    for (i = 0; i < hs.length; i++) {
-      if (chrome(hs[i]) || rect(hs[i]).height === 0) continue;
-      if (rect(hs[i]).top >= hb - 2) { h = hs[i]; break; }
-    }
-    if (!h) return;
-    // Climb to the widest block that holds only this heading (its section), without swallowing the hero
-    var sec = h;
-    while (sec.parentElement && sec.parentElement !== D.body && !sec.parentElement.contains(heroEl) && sec.parentElement.querySelectorAll('h1, h2').length === 1) sec = sec.parentElement;
     if (!bandEl) {
       var w = KC.words.map(function (x) { return '<span>' + x + '<i>\u2726</i></span>'; }).join('');
       bandEl = mk('div', 'kc-band', '<div class="kc-band-track">' + w + w + w + w + '</div>');
       bandEl.setAttribute('aria-hidden', 'true');
     }
-    sec.parentElement.insertBefore(bandEl, sec);
-    if (bandOk()) return;
-    var top = heroEl, hh = rect(heroEl).height;
-    while (top.parentElement && top.parentElement !== D.body && rect(top.parentElement).height <= hh * 1.2) top = top.parentElement;
-    top.parentElement.insertBefore(bandEl, top.nextSibling);
-    if (!bandOk()) { bandEl.parentNode.removeChild(bandEl); bandFailed = true; }
+    // Measure the banner without its zoom animation, which makes it look taller than it is
+    var ot = heroEl.style.getPropertyValue('transform'), op = heroEl.style.getPropertyPriority('transform');
+    heroEl.style.setProperty('transform', 'none', 'important');
+    var hb = rect(heroEl).bottom;
+    if (ot) heroEl.style.setProperty('transform', ot, op); else heroEl.style.removeProperty('transform');
+    var hs = D.querySelectorAll(H), h = null, spots = [], i, a;
+    for (i = 0; i < hs.length; i++) {
+      if (chrome(hs[i]) || rect(hs[i]).height === 0) continue;
+      if (rect(hs[i]).top >= hb - 2) { h = hs[i]; break; }
+    }
+    if (h) {
+      // The widest block that holds only this heading (its section), without swallowing the banner
+      var sec = h;
+      while (sec.parentElement && sec.parentElement !== D.body && !sec.parentElement.contains(heroEl) && sec.parentElement.querySelectorAll(H).length === 1) sec = sec.parentElement;
+      spots.push([sec.parentElement, sec]);
+    }
+    for (a = heroEl; a.parentElement && a !== D.body && a.parentElement !== R; a = a.parentElement) spots.push([a.parentElement, a.nextSibling]);
+    for (i = 0; i < spots.length; i++) {
+      try { spots[i][0].insertBefore(bandEl, spots[i][1]); } catch (e) { continue; }
+      if (bandFits(hb, h)) return;
+    }
+    if (bandEl.parentNode) bandEl.parentNode.removeChild(bandEl);
+    bandFailed = true;
   }
 
   // 3b. Scroll reveals
