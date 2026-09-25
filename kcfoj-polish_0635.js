@@ -898,3 +898,89 @@ btn.id = 'kc-compass';
  };
  if (D.readyState !== 'loading') mount(); else D.addEventListener('DOMContentLoaded', mount);
 })();
+/* ===== Part 6 (add-on): event date seals =====
+  An illuminated date seal on the corner of each event photo: weekday,
+  a large crimson day number and the month in small capitals, framed in
+  gold. Paste at the very end of the file, after Part 5. */
+(function () {
+ var D = document;
+ var HIDE_PILL = true; // false keeps Square's own date pill under the photo as well
+ var css = `
+.kc-seal{position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;min-width:62px;padding:7px 9px 8px;background:var(--kc-cream);border:1px solid var(--kc-gold);box-shadow:inset 0 0 0 3px var(--kc-cream),inset 0 0 0 4px rgba(168,132,79,.55),0 12px 26px -12px rgba(20,12,10,.6);color:var(--kc-ink);text-align:center;pointer-events:none;transform-origin:50% 60%;transition:transform .5s var(--kc-e)}
+.kc-seal-wd{font:600 9px/1 'Libre Franklin',system-ui,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--kc-gold);margin:1px 0 4px .24em}
+.kc-seal-day{font:400 34px/.95 'Playfair Display',Georgia,serif;font-variant-numeric:lining-nums;color:var(--kc-accent)}
+.kc-seal-mo{font:500 11px/1 'Playfair Display',Georgia,serif;letter-spacing:.2em;text-transform:uppercase;margin-top:5px;padding:5px 0 0 .2em;border-top:1px solid rgba(168,132,79,.6)}
+@media (max-width:600px){.kc-seal{min-width:56px;padding:6px 8px 7px}.kc-seal-day{font-size:30px}}
+@media (hover:hover){.kc-card:hover .kc-seal{transform:rotate(-3deg) scale(1.03)}}
+.kc-still .kc-seal{transition:none}
+.kc-still .kc-card:hover .kc-seal{transform:none}
+.kc-seal-src{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+`;
+ var tag = D.createElement('style');
+ tag.textContent = css;
+ (D.head || D.documentElement).appendChild(tag);
+ var MO = { jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr', may: 'May', jun: 'June', jul: 'July', aug: 'Aug', sep: 'Sept', oct: 'Oct', nov: 'Nov', dec: 'Dec' };
+ var WD = '(mon|tue|wed|thu|fri|sat|sun)[a-z]*\\.?,?\\s+', MN = '(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?';
+ var A = new RegExp('^(?:' + WD + ')?' + MN + '\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b', 'i');   // "FRI, SEP 25"
+ var B = new RegExp('^(?:' + WD + ')?(\\d{1,2})(?:st|nd|rd|th)?\\s+' + MN, 'i');           // "Fri 25 Sep"
+ // Returns the date parts, plus whether the text is only a date (safe to hide)
+ function parse(t) {
+   t = t.replace(/\s+/g, ' ').trim();
+   var m = t.match(A), p = null;
+   if (m) p = { wd: m[1], mo: m[2], d: m[3] };
+   else if ((m = t.match(B))) p = { wd: m[1], d: m[2], mo: m[3] };
+   if (!p || +p.d < 1 || +p.d > 31) return null;
+   p.only = /^[\s,.]*(\d{4})?[\s,.]*$/.test(t.slice(m[0].length));
+   return p;
+ }
+ function photoIn(card) {
+   var cw = card.getBoundingClientRect().width, all = card.querySelectorAll('*');
+   for (var i = 0; i < all.length; i++) {
+     var el = all[i], r = el.getBoundingClientRect();
+     if (r.width < cw * 0.6 || r.height < 100) continue;
+     if (/^(IMG|PICTURE|VIDEO)$/.test(el.tagName) || getComputedStyle(el).backgroundImage.indexOf('url(') > -1) return el;
+   }
+   return null;
+ }
+ // Sits 14px in from the photo's top-left corner, wherever the photo is inside its box
+ function place(s) {
+   var k = s._kc, a = k.anchor.getBoundingClientRect(), r = k.photo.getBoundingClientRect();
+   s.style.top = Math.round(r.top - a.top - k.anchor.clientTop + 14) + 'px';
+   s.style.left = Math.round(r.left - a.left - k.anchor.clientLeft + 14) + 'px';
+ }
+ function seals() {
+   [].forEach.call(D.querySelectorAll('.kc-card'), function (card) {
+     var s = card.querySelector('.kc-seal');
+     if (s && s._kc) { place(s); return; }
+     if (card.dataset.kcSeal && !s) delete card.dataset.kcSeal;
+     if (card.dataset.kcSeal) return;
+     var photo = photoIn(card);
+     if (!photo) return;
+     var leaves = card.querySelectorAll('*'), src = null, p = null;
+     for (var i = 0; i < leaves.length && !p; i++) {
+       if (leaves[i].childElementCount === 0 && (p = parse(leaves[i].textContent))) src = leaves[i];
+     }
+     if (!p) return;
+     card.dataset.kcSeal = '1';
+     var anchor = /^(IMG|PICTURE|VIDEO)$/.test(photo.tagName) ? photo.parentElement : photo;
+     if (getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
+     s = D.createElement('div');
+     s.className = 'kc-seal';
+     s.setAttribute('aria-hidden', 'true');
+     s.innerHTML = (p.wd ? '<span class="kc-seal-wd"></span>' : '') + '<span class="kc-seal-day"></span><span class="kc-seal-mo"></span>';
+     if (p.wd) s.querySelector('.kc-seal-wd').textContent = p.wd.slice(0, 3);
+     s.querySelector('.kc-seal-day').textContent = String(+p.d);
+     s.querySelector('.kc-seal-mo').textContent = MO[p.mo.slice(0, 3).toLowerCase()];
+     s._kc = { anchor: anchor, photo: photo };
+     anchor.appendChild(s);
+     place(s);
+     // The pill's text stays readable to screen readers; only its look is folded into the seal
+     if (HIDE_PILL && p.only) (src.closest('.kc-pill') || src).classList.add('kc-seal-src');
+   });
+ }
+ var prev = window.KCFOJ_wow;
+ window.KCFOJ_wow = function () {
+   if (prev) prev();
+   try { seals(); } catch (e) { if (window.console) console.warn('KCFOJ seals:', e); }
+ };
+})();
