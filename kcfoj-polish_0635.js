@@ -1,4 +1,4 @@
-/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.1).
+/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.2).
    Loaded on every page by one short script tag in Square's Tracking tools.
    Part 1 is the CSS. Part 2 finds your buttons, cards, gallery tiles and
    footer by their current colors and tags them, since Square doesn't
@@ -228,7 +228,7 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
   schedule();
 })();
 
-/* ===== Part 3: the "oh wow" layer (v2.1: scroll-safe) =====
+/* ===== Part 3: the "oh wow" layer (v2.2) =====
    Arrival veil, breathing hero, scroll reveals, word band,
    Red Book viewer and Shadow section.
    Edit the words and the quote in KC below. */
@@ -298,8 +298,8 @@ html.kc-lock{overflow:hidden}
 @media (max-width:600px){.kc-lb-prev,.kc-lb-next{display:none}}
 
 /* 5. The Shadow */
-.kc-shadow{position:relative;overflow:hidden;background:var(--kc-night);min-height:clamp(420px,72vh,680px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(72px,11vw,140px) 24px;--x:50%;--y:50%;--kc-r:220px}
-.kc-shadow::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle calc(var(--kc-r) * 1.7) at var(--x) var(--y),rgba(255,214,160,.17),rgba(255,214,160,.05) 45%,transparent 72%)}
+.kc-shadow{position:relative!important;overflow:hidden!important;background:var(--kc-night)!important;min-height:clamp(420px,72vh,680px)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:clamp(72px,11vw,140px) 24px!important;margin:0!important;--x:50%;--y:50%;--kc-r:220px}
+.kc-shadow::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle min(calc(var(--kc-r) * 1.7), 380px) at var(--x) var(--y),rgba(255,214,160,.17),rgba(255,214,160,.05) 45%,transparent 72%)}
 .kc-shadow-q{position:relative;margin:0;max-width:15ch;text-align:center;font:italic 400 clamp(34px,6.4vw,78px)/1.12 'Playfair Display',Georgia,serif;letter-spacing:-.01em;text-wrap:balance;color:transparent;background:radial-gradient(circle var(--kc-r) at var(--qx,50%) var(--qy,50%),#F8F1E4 0%,rgba(248,241,228,.6) 38%,rgba(248,241,228,.07) 72%);-webkit-background-clip:text;background-clip:text}
 .kc-shadow-by{display:block;margin-top:1.2em;font:500 11px/1.4 'Libre Franklin',system-ui,sans-serif;font-style:normal;letter-spacing:.36em;text-transform:uppercase}
 .kc-shadow-hint{position:absolute;left:0;right:0;bottom:24px;padding:0 16px;text-align:center;font:500 10px/1.4 system-ui,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:rgba(246,240,230,.32);transition:opacity .8s}
@@ -372,8 +372,8 @@ html.kc-lock{overflow:hidden}
       setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, 1400);
     }
     v.addEventListener('click', lift);
-    setTimeout(lift, 2400);
-    setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); veilUp = false; }, 4500);
+    setTimeout(lift, 2900);
+    setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); veilUp = false; }, 5200);
   }
 
   // 2. Hero: surfaces from a blur, then slowly breathes under a drifting aurora
@@ -419,15 +419,30 @@ html.kc-lock{overflow:hidden}
   }
 
   // 3a. Word band under the hero
-  var bandEl = null;
+  var bandEl = null, bandFailed = false;
+  function bandOk() { var b = rect(bandEl); return b.width >= window.innerWidth * 0.85 && b.height >= 20; }
   function band() {
-    if (!heroEl || (bandEl && D.contains(bandEl))) return;
-    var sec = sectionOf(heroEl);
-    if (!sec) return;
-    var w = KC.words.map(function (x) { return '<span>' + x + '<i>✦</i></span>'; }).join('');
-    bandEl = mk('div', 'kc-band', '<div class="kc-band-track">' + w + w + w + w + '</div>');
-    bandEl.setAttribute('aria-hidden', 'true');
-    sec.parentElement.insertBefore(bandEl, sec.nextSibling);
+    if (!heroEl || bandFailed || (bandEl && D.contains(bandEl))) return;
+    var hb = rect(heroEl).bottom, hs = D.querySelectorAll('h1, h2'), h = null, i;
+    for (i = 0; i < hs.length; i++) {
+      if (chrome(hs[i]) || rect(hs[i]).height === 0) continue;
+      if (rect(hs[i]).top >= hb - 2) { h = hs[i]; break; }
+    }
+    if (!h) return;
+    // Climb to the widest block that holds only this heading (its section), without swallowing the hero
+    var sec = h;
+    while (sec.parentElement && sec.parentElement !== D.body && !sec.parentElement.contains(heroEl) && sec.parentElement.querySelectorAll('h1, h2').length === 1) sec = sec.parentElement;
+    if (!bandEl) {
+      var w = KC.words.map(function (x) { return '<span>' + x + '<i>\u2726</i></span>'; }).join('');
+      bandEl = mk('div', 'kc-band', '<div class="kc-band-track">' + w + w + w + w + '</div>');
+      bandEl.setAttribute('aria-hidden', 'true');
+    }
+    sec.parentElement.insertBefore(bandEl, sec);
+    if (bandOk()) return;
+    var top = heroEl, hh = rect(heroEl).height;
+    while (top.parentElement && top.parentElement !== D.body && rect(top.parentElement).height <= hh * 1.2) top = top.parentElement;
+    top.parentElement.insertBefore(bandEl, top.nextSibling);
+    if (!bandOk()) { bandEl.parentNode.removeChild(bandEl); bandFailed = true; }
   }
 
   // 3b. Scroll reveals
@@ -547,18 +562,27 @@ html.kc-lock{overflow:hidden}
   function lantern(sec) {
     var q = sec.querySelector('.kc-shadow-q');
     if (still) { sec.classList.add('kc-lit'); return; }
-    var x = 0.3, y = 0.5, tx = 0.3, ty = 0.5, inside = false, live = false, raf = 0;
+    var x = 0.3, y = 0.5, tx = 0.3, ty = 0.5, inside = false, live = false, raf = 0, rr = 150;
     function tick(t) {
       var r = rect(sec), rq = rect(q), vh = window.innerHeight;
+      var base = Math.max(140, Math.min(260, window.innerWidth * 0.22)), rt = base;
       if (!inside) {
         var p = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)));
         tx = 0.14 + 0.72 * p + 0.05 * Math.sin(t / 1300);
         ty = 0.5 + 0.16 * Math.sin(p * Math.PI * 2 + t / 2100);
+        if (!fine) {
+          // 1 when the quote sits mid-screen, easing to 0 as it moves away
+          var mid = (rq.top + rq.height / 2) / vh, near = Math.max(0, 1 - Math.abs(mid - 0.5) / 0.32);
+          near = near * near * (3 - 2 * near);
+          var qx = (rq.left - r.left + rq.width / 2) / r.width, qy = (rq.top - r.top + rq.height / 2) / r.height;
+          tx += (qx - tx) * near; ty += (qy - ty) * near;
+          rt = base + (Math.hypot(rq.width, rq.height) / 2 / 0.4 - base) * near;
+        }
       }
       var k = inside ? 0.2 : 0.07;
-      x += (tx - x) * k; y += (ty - y) * k;
+      x += (tx - x) * k; y += (ty - y) * k; rr += (rt - rr) * 0.08;
       var px = x * r.width, py = y * r.height;
-      sec.style.setProperty('--kc-r', Math.round(Math.max(140, Math.min(260, window.innerWidth * 0.22))) + 'px');
+      sec.style.setProperty('--kc-r', Math.round(rr) + 'px');
       sec.style.setProperty('--x', px.toFixed(1) + 'px');
       sec.style.setProperty('--y', py.toFixed(1) + 'px');
       q.style.setProperty('--qx', (px - (rq.left - r.left)).toFixed(1) + 'px');
@@ -580,6 +604,16 @@ html.kc-lock{overflow:hidden}
       sec.addEventListener('pointerleave', function () { inside = false; });
     } else {
       window.addEventListener('scroll', function () { sec.classList.add('kc-used'); }, { passive: true, once: true });
+      function touch(e) {
+        var r = rect(sec), tp = e.touches[0];
+        if (!tp) return;
+        inside = true; sec.classList.add('kc-used');
+        tx = (tp.clientX - r.left) / r.width; ty = (tp.clientY - r.top) / r.height;
+      }
+      sec.addEventListener('touchstart', touch, { passive: true });
+      sec.addEventListener('touchmove', touch, { passive: true });
+      sec.addEventListener('touchend', function () { inside = false; }, { passive: true });
+      sec.addEventListener('touchcancel', function () { inside = false; }, { passive: true });
     }
   }
   function shadow() {
@@ -593,7 +627,7 @@ html.kc-lock{overflow:hidden}
     var q = shadowEl.querySelector('.kc-shadow-q');
     q.textContent = KC.quote;
     var by = mk('cite', 'kc-shadow-by'); by.textContent = KC.by; q.appendChild(by);
-    shadowEl.querySelector('.kc-shadow-hint').textContent = fine ? 'Move your light through the dark' : 'Scroll to carry the light';
+    shadowEl.querySelector('.kc-shadow-hint').textContent = fine ? 'Move your light through the dark' : 'Scroll or drag to carry the light';
     anchor.parentElement.insertBefore(shadowEl, anchor);
     lantern(shadowEl);
   }
