@@ -1,4 +1,4 @@
-/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.4, Red Book palette).
+/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.6, Red Book palette).
    Loaded on every page by one short script tag in Square's Tracking tools.
    Part 1 is the CSS. Part 2 finds your buttons, cards, gallery tiles and
    footer by their current colors and tags them, since Square doesn't
@@ -70,7 +70,7 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
   tag.textContent = css;
   (document.head || document.documentElement).appendChild(tag);
 
-  var GRAY = '#C3C2BE', PEACH = '#EBA371', TEALS = ['#006678', '#2A6476'], PILL = '#F1F1F1';
+  var GRAY = '#C3C2BE', PEACH = '#EBA371', TEALS = ['#006678', '#2A6476', '#8B2A24'], PILL = '#F1F1F1';
 
   function rgb(v) {
     var m = v && v.match(/rgba?\(([^)]+)\)/);
@@ -124,7 +124,7 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
         }
         continue;
       }
-      if ((near(c, TEALS[0], 10) || near(c, TEALS[1], 10)) && (within(el, 'a, button, [role="button"]') || el.matches('input[type="submit"]'))) {
+      if (TEALS.some(function (t) { return near(c, t, 10); }) && (within(el, 'a, button, [role="button"]') || el.matches('input[type="submit"]'))) {
         r = rect(el);
         if (r.width >= 60 && r.height < 120 && text(el).length > 2) {
           var join = parseFloat(s.borderTopLeftRadius) === 0 && parseFloat(s.borderTopRightRadius) > 0;
@@ -220,7 +220,7 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
     timer = setTimeout(function () {
       timer = null; last = Date.now();
       try { run(); } catch (e) { if (window.console) console.warn('KCFOJ polish:', e); }
-    }, Math.max(150, 800 - (Date.now() - last)));
+    }, Math.max(60, 350 - (Date.now() - last)));
   }
   new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener('load', schedule, true);
@@ -276,6 +276,9 @@ html.kc-lock{overflow:hidden}
 .kc-rv.kc-in{opacity:1;transform:none}
 .kc-rv-h.kc-in{opacity:1;filter:blur(0);transform:none}
 .kc-band{position:relative;overflow:hidden;border-block:1px solid rgba(139,42,36,.2);padding-block:clamp(14px,2.2vw,22px)}
+.kc-band.kc-band-in{animation:kcUnfold 1.1s var(--kc-e) both}
+@keyframes kcUnfold{from{max-height:0;opacity:0;padding-block:0}to{max-height:160px;opacity:1}}
+.kc-still .kc-band.kc-band-in{animation:none}
 .kc-band-track{display:flex;width:max-content;animation:kcMarq 60s linear infinite}
 .kc-band span{display:inline-flex;align-items:center;gap:.9em;padding-inline:.45em;white-space:nowrap;font:italic 400 clamp(22px,3.6vw,42px)/1.15 'Playfair Display',Georgia,serif;color:var(--kc-deep)}
 .kc-band i{font-style:normal;color:var(--kc-gold);font-size:.5em}
@@ -406,13 +409,14 @@ html.kc-lock{overflow:hidden}
     });
   }
   function hero() {
-    if (heroEl) return;
-    var vw = window.innerWidth, all = D.body.querySelectorAll('*');
+    if (heroEl && D.contains(heroEl)) return;
+    heroEl = null;
+    var vw = R.clientWidth || window.innerWidth, all = D.body.querySelectorAll('*');
     for (var i = 0; i < all.length; i++) {
       var el = all[i];
-      if (el.closest('header, nav, .kc-veil, .kc-header, .kc-lb')) continue;
+      if (el.closest('header, nav, a, button, .kc-veil, .kc-header, .kc-lb, .kc-card, .kc-tile, .kc-shadow, .kc-band')) continue;
       var r = rect(el);
-      if (r.width < vw * 0.9 || r.height < 160 || r.height > window.innerHeight * 1.25 || r.top + window.scrollY > 700) continue;
+      if (r.width < vw - 6 || r.height < 160 || r.height > window.innerHeight * 1.25 || r.top + window.scrollY > 700) continue;
       if (!/^(IMG|PICTURE|VIDEO)$/.test(el.tagName) && getComputedStyle(el).backgroundImage.indexOf('url(') < 0) continue;
       var wrap = el.parentElement;
       heroSoft = !safeWrap(wrap, r);
@@ -428,39 +432,61 @@ html.kc-lock{overflow:hidden}
   }
 
   // 3a. Word band under the hero
-  var bandEl = null, bandFailed = false, H = 'h1, h2, h3';
-  // The band has to be full width, sit below the banner, above the next heading, and not be clipped
-  function bandFits(hb, h) {
-    var b = rect(bandEl);
-    if (b.width < window.innerWidth * 0.85 || b.height < 20 || b.top < hb - 2) return false;
-    if (h ? b.bottom > rect(h).top + 2 : b.top > hb + 240) return false;
-    for (var a = bandEl.parentElement; a && a !== D.body && a !== R; a = a.parentElement) {
-      var st2 = getComputedStyle(a);
-      if (st2.display === 'none' || st2.visibility === 'hidden' || parseFloat(st2.opacity) < 0.05) return false;
-      if (st2.overflowX !== 'visible' || st2.overflowY !== 'visible') {
-        var ar = rect(a);
-        if (b.top < ar.top - 1 || b.bottom > ar.bottom + 1 || b.left < ar.left - 2 || b.right > ar.right + 2) return false;
-      }
+  var bandEl = null, bandTries = 0, bandTimer = 0, H = 'h1, h2, h3, h4', diag = [];
+  function path(el) {
+    var out = [];
+    for (var n = 0; el && el !== D.body && el !== R && n < 4; n++, el = el.parentElement) {
+      var c = typeof el.className === 'string' ? el.className.trim().split(/\s+/).filter(function (x) { return x && x.indexOf('kc-') !== 0; }).slice(0, 2).join('.') : '';
+      out.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (c ? '.' + c : ''));
     }
-    return true;
+    return out.join(' < ') || 'body';
+  }
+  // Returns '' when the band is full width, below the banner, above the next heading and not hidden
+  function bandFits(hb, h, minW) {
+    var b = rect(bandEl);
+    if (b.width < window.innerWidth * minW) return 'too narrow (' + Math.round(b.width) + 'px)';
+    if (b.height < 20) return 'squashed (' + Math.round(b.height) + 'px tall)';
+    if (b.top < hb - 2) return 'overlaps banner';
+    if (h ? b.bottom > rect(h).top + 2 : b.top > hb + 240) return 'too far down';
+    for (var a = bandEl.parentElement; a && a !== D.body && a !== R; a = a.parentElement) {
+      var s2 = getComputedStyle(a);
+      if (s2.display === 'none' || s2.visibility === 'hidden') return 'hidden by ' + path(a);
+      var ar = rect(a);
+      // Scrollable boxes don't hide content (you can scroll to it); only hidden/clip boxes do
+      if (/hidden|clip/.test(s2.overflowY) && (b.top < ar.top - 1 || b.bottom > ar.bottom + 1)) return 'clipped by ' + path(a);
+      if (/hidden|clip/.test(s2.overflowX) && (b.left < ar.left - 2 || b.right > ar.right + 2)) return 'clipped by ' + path(a);
+    }
+    return '';
+  }
+  function showDiag() {
+    if (location.hash !== '#kcdebug') return;
+    var box = D.getElementById('kc-diag') || D.body.appendChild(mk('pre'));
+    box.id = 'kc-diag';
+    box.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;max-height:55vh;overflow:auto;margin:0;padding:10px;background:#fff;color:#111;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;border:2px solid #8B2A24;border-radius:6px';
+    box.textContent = 'KCFOJ debug (v2.6) page ' + location.pathname + '\n' + diag.join('\n');
   }
   function band() {
-    if (!heroEl || bandFailed || (bandEl && D.contains(bandEl))) return;
+    if (!heroEl || bandTries >= 12 || (bandEl && D.contains(bandEl))) return;
+    bandTries++;
     if (!bandEl) {
-      var w = KC.words.map(function (x) { return '<span>' + x + '<i>\u2726</i></span>'; }).join('');
+      var w = KC.words.map(function (x) { return '<span>' + x + '<i>✦</i></span>'; }).join('');
       bandEl = mk('div', 'kc-band', '<div class="kc-band-track">' + w + w + w + w + '</div>');
       bandEl.setAttribute('aria-hidden', 'true');
     }
+    bandEl.classList.remove('kc-band-in');
     // Measure the banner without its zoom animation, which makes it look taller than it is
     var ot = heroEl.style.getPropertyValue('transform'), op = heroEl.style.getPropertyPriority('transform');
     heroEl.style.setProperty('transform', 'none', 'important');
     var hb = rect(heroEl).bottom;
     if (ot) heroEl.style.setProperty('transform', ot, op); else heroEl.style.removeProperty('transform');
-    var hs = D.querySelectorAll(H), h = null, spots = [], i, a;
+    var hs = D.querySelectorAll(H), h = null, spots = [], i, a, k, why;
     for (i = 0; i < hs.length; i++) {
       if (chrome(hs[i]) || rect(hs[i]).height === 0) continue;
       if (rect(hs[i]).top >= hb - 2) { h = hs[i]; break; }
     }
+    diag = ['try ' + bandTries + ' | screen ' + window.innerWidth + 'x' + window.innerHeight,
+            'banner: ' + path(heroEl) + ' | bottom ' + Math.round(hb),
+            'next heading: ' + (h ? h.tagName + ' "' + h.textContent.trim().slice(0, 32) + '" ' + path(h.parentElement) : 'none found')];
     if (h) {
       // The widest block that holds only this heading (its section), without swallowing the banner
       var sec = h;
@@ -468,12 +494,18 @@ html.kc-lock{overflow:hidden}
       spots.push([sec.parentElement, sec]);
     }
     for (a = heroEl; a.parentElement && a !== D.body && a.parentElement !== R; a = a.parentElement) spots.push([a.parentElement, a.nextSibling]);
-    for (i = 0; i < spots.length; i++) {
-      try { spots[i][0].insertBefore(bandEl, spots[i][1]); } catch (e) { continue; }
-      if (bandFits(hb, h)) return;
+    for (k = 0; k < 2; k++) {
+      for (i = 0; i < spots.length; i++) {
+        try { spots[i][0].insertBefore(bandEl, spots[i][1]); } catch (e) { continue; }
+        why = bandFits(hb, h, k ? 0.6 : 0.85);
+        diag.push((k ? 'loose ' : '') + 'in ' + path(spots[i][0]) + ' -> ' + (why || 'OK'));
+        if (!why) { if (!still) bandEl.classList.add('kc-band-in'); showDiag(); return; }
+      }
     }
     if (bandEl.parentNode) bandEl.parentNode.removeChild(bandEl);
-    bandFailed = true;
+    showDiag();
+    clearTimeout(bandTimer);
+    if (bandTries < 12) bandTimer = setTimeout(function () { if (window.KCFOJ_wow) window.KCFOJ_wow(); }, 1200);
   }
 
   // 3b. Scroll reveals
@@ -671,63 +703,89 @@ html.kc-lock{overflow:hidden}
   ['wheel', 'touchstart', 'keydown'].forEach(function (ev) { window.addEventListener(ev, unstick, { passive: true }); });
 
   showVeil(false);
+  function isHome() {
+    if (window.KCFOJ_FORCE_HOME) return true;
+    var pth = location.pathname.replace(/\/+$/, '');
+    return pth === '' || /^\/(index\.(php|html?)|home)$/i.test(pth);
+  }
+  // Square switches pages without reloading, so clear anything tied to the previous page
+  var lastPath = null;
+  function routeCheck() {
+    if (location.pathname === lastPath) return;
+    lastPath = location.pathname;
+    if (heroEl) heroEl.classList.remove('kc-hero', 'kc-hero-soft', 'kc-hero-pre');
+    heroEl = null; heroSoft = false;
+    [].forEach.call(D.querySelectorAll('.kc-aurora'), function (x) { x.parentNode.removeChild(x); });
+    [].forEach.call(D.querySelectorAll('.kc-hero-wrap'), function (x) { x.classList.remove('kc-hero-wrap'); });
+    if (bandEl && bandEl.parentNode) bandEl.parentNode.removeChild(bandEl);
+    bandTries = 0; clearTimeout(bandTimer);
+    if (shadowEl && shadowEl.parentNode) shadowEl.parentNode.removeChild(shadowEl);
+    shadowEl = null;
+  }
   window.KCFOJ_wow = function () {
     if (!D.body) return;
-    [hero, band, shadow, gallery, reveal].forEach(function (f) {
+    routeCheck();
+    var home = isHome();
+    [home && hero, home && band, home && shadow, gallery, reveal].forEach(function (f) {
+      if (!f) return;
       try { f(); } catch (e) { if (window.console) console.warn('KCFOJ wow:', e); }
     });
   };
   window.KCFOJ = { replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(); } };
 })();
+
 /* ===== Part 4 (add-on): illuminated initials + rubric ornaments =====
-  Paste at the very end of the file. Uses the existing palette tokens
-  and runs inside the existing update cycle (KCFOJ_wow). */
+   Paste at the very end of the file. Uses the existing palette tokens
+   and runs inside the existing update cycle (KCFOJ_wow). */
 (function () {
- var D = document;
- var css = `
+  var D = document;
+  var css = `
 .kc-initial::first-letter{float:left;font-family:'UnifrakturMaguntia','Playfair Display',Georgia,serif;font-weight:400;font-style:normal;font-size:3.5em;line-height:.85;color:var(--kc-accent);padding:.1em .12em .04em;margin:.08em .16em 0 0;border:1px solid var(--kc-gold);background:rgba(139,42,36,.05)}
 .kc-rubric::after{content:"";display:block;width:clamp(120px,20vw,180px);height:12px;margin:.5em auto 0;background:linear-gradient(var(--kc-gold),var(--kc-gold)) left center/calc(50% - 16px) 1px no-repeat,linear-gradient(var(--kc-gold),var(--kc-gold)) right center/calc(50% - 16px) 1px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0L7.6 4.4 12 6 7.6 7.6 6 12 4.4 7.6 0 6 4.4 4.4z' fill='%238B2A24'/%3E%3C/svg%3E") center/11px 11px no-repeat}
 .kc-rubric-left::after{margin-left:0}
 `;
- var tag = D.createElement('style');
- tag.textContent = css;
- (D.head || D.documentElement).appendChild(tag);
- function skip(el) { return !!el.closest('header, footer, nav, form, blockquote, li, a, button, .kc-veil, .kc-lb, .kc-band, .kc-shadow, .kc-footer, .kc-header, .kc-hero-wrap, .kc-card'); }
- function left(el) { return /^(left|start|justify)$/.test(getComputedStyle(el).textAlign); }
- function fontOnce() {
-   if (D.getElementById('kc-initial-font')) return;
-   var l = D.createElement('link');
-l.id = 'kc-initial-font'; l.rel = 'stylesheet';
-   l.href = 'https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-   D.head.appendChild(l);
- }
- function illuminate() {
-   // Section headings get a small crimson-and-gold rubric beneath them
-   [].forEach.call(D.querySelectorAll('h1, h2, h3'), function (h) {
-     if (h.dataset.kcRubric || skip(h)) return;
-     var s = getComputedStyle(h), t = h.textContent.trim();
-     if (parseFloat(s.fontSize) < 28 || t.length < 2 || t.length > 60 || /^(right|end)$/.test(s.textAlign)) return;
-     h.dataset.kcRubric = '1';
-     h.classList.add('kc-rubric');
-     if (left(h)) h.classList.add('kc-rubric-left');
-   });
-   // The first long, left-aligned paragraph after each heading opens with an illuminated initial
-   var armed = true;
-   [].forEach.call(D.querySelectorAll('h1, h2, h3, h4, p'), function (el) {
-     if (skip(el)) return;
-     if (el.tagName !== 'P') { armed = true; return; }
-     if (!armed || el.dataset.kcInitial) { if (el.dataset.kcInitial) armed = false; return; }
-     var t = el.textContent.trim();
-     if (t.length < 160 || !/^[A-Za-z]/.test(t) || !left(el)) return;
-     el.dataset.kcInitial = '1';
-     el.classList.add('kc-initial');
-     armed = false;
-     fontOnce();
-   });
- }
- var prev = window.KCFOJ_wow;
- window.KCFOJ_wow = function () {
-   if (prev) prev();
-   try { illuminate(); } catch (e) { if (window.console) console.warn('KCFOJ add-on:', e); }
- };
+  var tag = D.createElement('style');
+  tag.textContent = css;
+  (D.head || D.documentElement).appendChild(tag);
+
+  function skip(el) { return !!el.closest('header, footer, nav, form, blockquote, li, a, button, .kc-veil, .kc-lb, .kc-band, .kc-shadow, .kc-footer, .kc-header, .kc-hero-wrap, .kc-card'); }
+  function left(el) { return /^(left|start|justify)$/.test(getComputedStyle(el).textAlign); }
+  function fontOnce() {
+    if (D.getElementById('kc-initial-font')) return;
+    var l = D.createElement('link');
+    l.id = 'kc-initial-font'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    D.head.appendChild(l);
+  }
+
+  function illuminate() {
+    // Section headings get a small crimson-and-gold rubric beneath them
+    [].forEach.call(D.querySelectorAll('h1, h2, h3'), function (h) {
+      if (h.dataset.kcRubric || skip(h)) return;
+      var s = getComputedStyle(h), t = h.textContent.trim();
+      if (parseFloat(s.fontSize) < 28 || t.length < 2 || t.length > 60 || /^(right|end)$/.test(s.textAlign)) return;
+      h.dataset.kcRubric = '1';
+      h.classList.add('kc-rubric');
+      if (left(h)) h.classList.add('kc-rubric-left');
+    });
+    // The first long, left-aligned paragraph after each heading opens with an illuminated initial
+    var armed = true;
+    [].forEach.call(D.querySelectorAll('h1, h2, h3, h4, p'), function (el) {
+      if (skip(el)) return;
+      if (el.tagName !== 'P') { armed = true; return; }
+      if (!armed || el.dataset.kcInitial) { if (el.dataset.kcInitial) armed = false; return; }
+      var t = el.textContent.trim();
+      if (t.length < 160 || !/^[A-Za-z]/.test(t) || !left(el)) return;
+      el.dataset.kcInitial = '1';
+      el.classList.add('kc-initial');
+      armed = false;
+      fontOnce();
+    });
+  }
+
+  var prev = window.KCFOJ_wow;
+  window.KCFOJ_wow = function () {
+    if (prev) prev();
+    try { illuminate(); } catch (e) { if (window.console) console.warn('KCFOJ add-on:', e); }
+  };
 })();
