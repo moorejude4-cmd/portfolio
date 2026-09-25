@@ -679,3 +679,55 @@ html.kc-lock{overflow:hidden}
   };
   window.KCFOJ = { replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(); } };
 })();
+/* ===== Part 4 (add-on): illuminated initials + rubric ornaments =====
+  Paste at the very end of the file. Uses the existing palette tokens
+  and runs inside the existing update cycle (KCFOJ_wow). */
+(function () {
+ var D = document;
+ var css = `
+.kc-initial::first-letter{float:left;font-family:'UnifrakturMaguntia','Playfair Display',Georgia,serif;font-weight:400;font-style:normal;font-size:3.5em;line-height:.85;color:var(--kc-accent);padding:.1em .12em .04em;margin:.08em .16em 0 0;border:1px solid var(--kc-gold);background:rgba(139,42,36,.05)}
+.kc-rubric::after{content:"";display:block;width:clamp(120px,20vw,180px);height:12px;margin:.5em auto 0;background:linear-gradient(var(--kc-gold),var(--kc-gold)) left center/calc(50% - 16px) 1px no-repeat,linear-gradient(var(--kc-gold),var(--kc-gold)) right center/calc(50% - 16px) 1px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0L7.6 4.4 12 6 7.6 7.6 6 12 4.4 7.6 0 6 4.4 4.4z' fill='%238B2A24'/%3E%3C/svg%3E") center/11px 11px no-repeat}
+.kc-rubric-left::after{margin-left:0}
+`;
+ var tag = D.createElement('style');
+ tag.textContent = css;
+ (D.head || D.documentElement).appendChild(tag);
+ function skip(el) { return !!el.closest('header, footer, nav, form, blockquote, li, a, button, .kc-veil, .kc-lb, .kc-band, .kc-shadow, .kc-footer, .kc-header, .kc-hero-wrap, .kc-card'); }
+ function left(el) { return /^(left|start|justify)$/.test(getComputedStyle(el).textAlign); }
+ function fontOnce() {
+   if (D.getElementById('kc-initial-font')) return;
+   var l = D.createElement('link');
+l.id = 'kc-initial-font'; l.rel = 'stylesheet';
+   l.href = 'https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap&text=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+   D.head.appendChild(l);
+ }
+ function illuminate() {
+   // Section headings get a small crimson-and-gold rubric beneath them
+   [].forEach.call(D.querySelectorAll('h1, h2, h3'), function (h) {
+     if (h.dataset.kcRubric || skip(h)) return;
+     var s = getComputedStyle(h), t = h.textContent.trim();
+     if (parseFloat(s.fontSize) < 28 || t.length < 2 || t.length > 60 || /^(right|end)$/.test(s.textAlign)) return;
+     h.dataset.kcRubric = '1';
+     h.classList.add('kc-rubric');
+     if (left(h)) h.classList.add('kc-rubric-left');
+   });
+   // The first long, left-aligned paragraph after each heading opens with an illuminated initial
+   var armed = true;
+   [].forEach.call(D.querySelectorAll('h1, h2, h3, h4, p'), function (el) {
+     if (skip(el)) return;
+     if (el.tagName !== 'P') { armed = true; return; }
+     if (!armed || el.dataset.kcInitial) { if (el.dataset.kcInitial) armed = false; return; }
+     var t = el.textContent.trim();
+     if (t.length < 160 || !/^[A-Za-z]/.test(t) || !left(el)) return;
+     el.dataset.kcInitial = '1';
+     el.classList.add('kc-initial');
+     armed = false;
+     fontOnce();
+   });
+ }
+ var prev = window.KCFOJ_wow;
+ window.KCFOJ_wow = function () {
+   if (prev) prev();
+   try { illuminate(); } catch (e) { if (window.console) console.warn('KCFOJ add-on:', e); }
+ };
+})();
