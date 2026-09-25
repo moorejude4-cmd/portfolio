@@ -1133,509 +1133,170 @@ btn.id = 'kc-compass';
    try { rotate(); } catch (e) { if (window.console) console.warn('KCFOJ quotes:', e); }
  };
 })();
+
 /* ===== Part 9 (add-on): tappable word band =====
-
    Tap or click a word in the drifting band under the banner to open a short
-
    definition card. The band pauses while you hover it or read a card.
-
    Edit DEFS to change the wording. Paste at the very end, after Part 8. */
-
 (function () {
-
   var D = document;
-
   var DEFS = {
-
     'dreams': 'For Jung, a spontaneous self-portrait of the psyche\u2019s actual situation, told in symbols. Dreams often show what the waking mind overlooks.',
-
     'shadow': 'The parts of ourselves we do not see or would rather not own. Left unacknowledged, they tend to meet us in other people.',
-
     'archetypes': 'Inborn patterns of experience, such as the mother, the hero or the wise old man, that take shape in images across cultures and centuries.',
-
     'individuation': 'The lifelong process of becoming the whole person one is, by bringing what was unconscious into awareness.',
-
     'the self': 'The center and the whole of the psyche, often pictured as a mandala.',
-
     'symbol': 'For Jung, the best possible expression of something not yet fully known. A sign points to what we already know; a symbol points beyond it.',
-
     'anima': 'Jung\u2019s name for the feminine inner figure in a man\u2019s psyche, a bridge between consciousness and the unconscious. Its counterpart in a woman is the animus.',
-
     'myth': 'The shared stories in which the archetypes speak. Jung saw myth and dream as two voices of the same deep layer of the psyche.'
-
   };
-
   var css = `
-
-.kc-band span{cursor:pointer;text-decoration:underline dotted rgba(168,132,79,.55);text-decoration-thickness:1px;text-underline-offset:.2em;transition:color .3s ease}
-
+.kc-band span{cursor:pointer;transition:color .3s ease}
+.kc-band .kc-w{font:inherit!important;color:inherit!important;text-decoration:underline dotted rgba(168,132,79,.55);text-decoration-thickness:1px;text-underline-offset:.2em}
 .kc-band:hover .kc-band-track,.kc-band.kc-held .kc-band-track{animation-play-state:paused}
-
-.kc-band span.kc-on,.kc-band span:hover{color:var(--kc-accent);text-decoration-style:solid}
-
+.kc-band span.kc-on,.kc-band span:hover{color:var(--kc-accent)}
+.kc-band span.kc-on .kc-w,.kc-band span:hover .kc-w{text-decoration-style:solid}
 .kc-def{position:fixed;z-index:2147483200;width:min(320px,calc(100vw - 32px));padding:16px 18px 18px;background:var(--kc-cream);border:1px solid var(--kc-gold);box-shadow:inset 0 0 0 3px var(--kc-cream),inset 0 0 0 4px rgba(168,132,79,.45),0 18px 40px -18px rgba(20,12,10,.6);color:var(--kc-ink);opacity:0;transform:translateY(6px);transition:opacity .25s ease,transform .35s var(--kc-e);pointer-events:none}
-
 .kc-def.kc-show{opacity:1;transform:none;pointer-events:auto}
-
 .kc-def-term{display:block;margin-bottom:6px;font:italic 400 22px/1.2 'Playfair Display',Georgia,serif;color:var(--kc-accent)}
-
 .kc-def-term::after{content:"";display:block;width:44px;height:1px;margin-top:8px;background:var(--kc-gold)}
-
 .kc-def-text{display:block;font:400 15px/1.6 'Libre Franklin',system-ui,sans-serif}
-
 .kc-still .kc-def{transition:none;transform:none}
-
 `;
-
   var tag = D.createElement('style');
-
   tag.textContent = css;
-
   (D.head || D.documentElement).appendChild(tag);
 
   var card = null, from = null, y0 = 0;
-
   function close() {
-
     if (!card) return;
-
     card.classList.remove('kc-show');
-
     if (from) { from.classList.remove('kc-on'); var b = from.closest('.kc-band'); if (b) b.classList.remove('kc-held'); }
-
     from = null;
-
   }
-
   function word(span) {
-
+    var w = span.querySelector('.kc-w');
+    if (w) return w.textContent.trim();
     var t = '';
-
     for (var n = span.firstChild; n; n = n.nextSibling) if (n.nodeType === 3) t += n.nodeValue;
-
     return t.trim();
-
   }
-
+  // Wraps each word in its own element so the underline skips the gold stars between words
+  function mark() {
+    [].forEach.call(D.querySelectorAll('.kc-band span'), function (s) {
+      if (s.querySelector('.kc-w')) return;
+      for (var n = s.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3 && n.nodeValue.trim()) {
+          var w = D.createElement('b');
+          w.className = 'kc-w';
+          s.insertBefore(w, n);
+          w.appendChild(n);
+          return;
+        }
+      }
+    });
+  }
   function open(span) {
-
     var w = word(span), def = DEFS[w.toLowerCase()];
-
     if (!def) return;
-
     if (!card) {
-
       card = D.createElement('div');
-
       card.className = 'kc-def';
-
       card.setAttribute('role', 'note');
-
       card.innerHTML = '<span class="kc-def-term"></span><span class="kc-def-text"></span>';
-
       D.body.appendChild(card);
-
     }
-
     close();
-
     from = span;
-
     y0 = window.pageYOffset;
-
     span.classList.add('kc-on');
-
     span.closest('.kc-band').classList.add('kc-held');
-
     card.querySelector('.kc-def-term').textContent = w;
-
     card.querySelector('.kc-def-text').textContent = def;
-
     // Above the word when there is room, otherwise below it; always inside the screen
-
     var r = span.getBoundingClientRect(), cw = card.offsetWidth, ch = card.offsetHeight, vw = D.documentElement.clientWidth;
-
     var left = Math.max(16, Math.min(vw - cw - 16, r.left + r.width / 2 - cw / 2));
-
     var top = r.top - ch - 12 >= 12 ? r.top - ch - 12 : r.bottom + 12;
-
     card.style.left = Math.round(left) + 'px';
-
     card.style.top = Math.round(top) + 'px';
-
     requestAnimationFrame(function () { card.classList.add('kc-show'); });
-
   }
 
   D.addEventListener('click', function (e) {
-
     var span = e.target.closest && e.target.closest('.kc-band span');
-
     if (span) { if (span === from) close(); else open(span); return; }
-
     if (card && !card.contains(e.target)) close();
-
   });
-
   D.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-
   window.addEventListener('scroll', function () {
-
     if (from && Math.abs(window.pageYOffset - y0) > 40) close();
-
   }, { passive: true });
-
   window.addEventListener('resize', close, { passive: true });
 
+  var prev = window.KCFOJ_wow;
+  window.KCFOJ_wow = function () {
+    if (prev) prev();
+    try { mark(); } catch (e) { if (window.console) console.warn('KCFOJ band words:', e); }
+  };
 })();
 
 /* ===== Part 10 (add-on): "Tonight" ribbon on the date seals =====
-
-   On the day of an event its date seal gets a crimson-and-gold ribbon:
-
+   On the day of an event its date seal gets a crimson-and-gold ribbon
+   across its lower edge:
    "Tonight" for events at 4 PM or later, "Today" for earlier ones. The day
-
    before, it reads "Tomorrow". Needs Part 6. Paste at the very end, after Part 9. */
-
 (function () {
-
   var D = document;
-
   var css = `
-
-.kc-seal-flag{position:absolute;left:50%;top:-10px;transform:translateX(-50%);padding:3px 8px 3px calc(8px + .22em);white-space:nowrap;background:var(--kc-accent);border:1px solid var(--kc-gold);color:var(--kc-cream);font:600 8.5px/1.25 'Libre Franklin',system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;box-shadow:0 4px 10px -4px rgba(20,12,10,.5)}
-
+.kc-seal-flag{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);padding:3px 8px 3px calc(8px + .22em);white-space:nowrap;background:var(--kc-accent);border:1px solid var(--kc-gold);color:var(--kc-cream);font:600 8.5px/1.25 'Libre Franklin',system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;box-shadow:0 4px 10px -4px rgba(20,12,10,.5)}
 .kc-seal-flag.kc-now{animation:kcFlag 2.8s ease-in-out infinite}
-
 @keyframes kcFlag{0%,100%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 0 rgba(168,132,79,0)}50%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 4px rgba(168,132,79,.3)}}
-
 .kc-still .kc-seal-flag.kc-now{animation:none}
-
 `;
-
   var tag = D.createElement('style');
-
   tag.textContent = css;
-
   (D.head || D.documentElement).appendChild(tag);
 
   var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-
   var DAY = 864e5;
-
   // Days from today to the event (the seal shows no year, so the nearest matching date is used)
-
   function daysUntil(m, d) {
-
     var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
     var ev = new Date(now.getFullYear(), m, d);
-
     if (ev - today < -180 * DAY) ev.setFullYear(ev.getFullYear() + 1);
-
     else if (ev - today > 180 * DAY) ev.setFullYear(ev.getFullYear() - 1);
-
     return Math.round((ev - today) / DAY);
-
   }
-
   function flags() {
-
     [].forEach.call(D.querySelectorAll('.kc-seal'), function (s) {
-
       if (s.dataset.kcFlag) return;
-
       s.dataset.kcFlag = '1';
-
       var dEl = s.querySelector('.kc-seal-day'), mEl = s.querySelector('.kc-seal-mo');
-
       if (!dEl || !mEl) return;
-
       var m = MONTHS.indexOf(mEl.textContent.trim().slice(0, 3).toLowerCase()), d = +dEl.textContent;
-
       if (m < 0 || !d) return;
-
       var left = daysUntil(m, d), label = '';
-
       if (left === 1) label = 'Tomorrow';
-
       else if (left === 0) {
-
         // The event time, read from the card's own text pieces, like "7:00 PM"
-
         var card = s.closest('.kc-card'), h = -1, bits = card ? card.querySelectorAll('*') : [];
-
         for (var i = 0; i < bits.length && h < 0; i++) {
-
           var t = bits[i].childElementCount ? null : bits[i].textContent.match(/\b(\d{1,2})(?::\d{2})?\s*([AaPp])\.?\s?[Mm]\b/);
-
           if (t) h = (+t[1] % 12) + (/p/i.test(t[2]) ? 12 : 0);
-
         }
-
         label = h >= 16 ? 'Tonight' : 'Today';
-
       }
-
       if (!label) return;
-
       var f = D.createElement('span');
-
       f.className = 'kc-seal-flag' + (left === 0 ? ' kc-now' : '');
-
       f.textContent = label;
-
       s.appendChild(f);
-
     });
-
   }
 
   var prev = window.KCFOJ_wow;
-
   window.KCFOJ_wow = function () {
-
     if (prev) prev();
-
     try { flags(); } catch (e) { if (window.console) console.warn('KCFOJ ribbon:', e); }
-
   };
-
 })();
-
-/* ===== Part 11 (add-on): Red Book plates as a manuscript spread =====
-
-   Turns the grid of Red Book plates into a swipeable spread of folio pages
-
-   that tilt gently as they pass the center, with folio numerals beneath.
-
-   Tapping a plate still opens it full screen. It only runs where four or
-
-   more plates sit together in one gallery. Paste at the very end, after Part 10. */
-
-(function () {
-
-  var D = document;
-
-  var still = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-  var css = `
-
-.kc-folio{--kc-page:min(64vw,300px);display:flex!important;flex-wrap:nowrap!important;align-items:flex-start!important;gap:clamp(18px,3vw,34px)!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px calc(50% - var(--kc-page) / 2) 26px!important;margin-left:0!important;margin-right:0!important;max-width:none!important;height:auto!important;perspective:1400px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
-
-.kc-folio::-webkit-scrollbar{display:none}
-
-.kc-folio:focus-visible{outline:2px solid var(--kc-accent);outline-offset:4px}
-
-.kc-folio-flat{display:contents!important}
-
-.kc-folio-skip{display:none!important}
-
-.kc-folio-page{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;position:relative!important;inset:auto!important;scroll-snap-align:center;transform-origin:50% 50%}
-
-.kc-folio-leaf{overflow:visible!important}
-
-.kc-folio-no{display:block;margin-top:14px;text-align:center;font:italic 400 14px/1 'Playfair Display',Georgia,serif;letter-spacing:.08em;color:var(--kc-gold);pointer-events:none}
-
-.kc-folio-btn{position:absolute;z-index:3;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--kc-gold);border-radius:50%;background:var(--kc-cream);color:var(--kc-accent);font:400 26px/1 Georgia,serif;cursor:pointer;box-shadow:0 8px 20px -10px rgba(20,12,10,.5);transition:opacity .3s ease}
-
-.kc-folio-btn[disabled]{opacity:0;pointer-events:none}
-
-@media (min-width:900px){.kc-folio{--kc-page:min(24vw,300px)}}
-
-@media (max-width:899px){.kc-folio-btn{display:none}}
-
-.kc-still .kc-folio{scroll-behavior:auto}
-
-.kc-still .kc-folio-btn{transition:none}
-
-`;
-
-  var tag = D.createElement('style');
-
-  tag.textContent = css;
-
-  (D.head || D.documentElement).appendChild(tag);
-
-  var ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi'];
-
-  function holds(el, tiles) { return tiles.filter(function (t) { return el.contains(t); }).length; }
-
-  // Pages lean away and shrink slightly as they move off center, like leaves of a book
-
-  function tilt(box) {
-
-    if (still) return;
-
-    var br = box.getBoundingClientRect(), cx = br.left + br.width / 2;
-
-    [].forEach.call(box.querySelectorAll('.kc-folio-page'), function (p) {
-
-      var r = p.getBoundingClientRect(), k = Math.max(-1, Math.min(1, (r.left + r.width / 2 - cx) / br.width * 2.2));
-
-      // A page that is itself the plate keeps Part 3's hover tilt, so it only fades
-
-      if (p.classList.contains('kc-folio-leaf')) p.style.transform = 'rotateY(' + (-k * 16).toFixed(2) + 'deg) scale(' + (1 - Math.abs(k) * 0.08).toFixed(3) + ')';
-
-      p.style.opacity = (1 - Math.abs(k) * 0.25).toFixed(3);
-
-    });
-
-  }
-
-  function step(box) {
-
-    var ps = box.querySelectorAll('.kc-folio-page');
-
-    return ps.length > 1 ? ps[1].getBoundingClientRect().left - ps[0].getBoundingClientRect().left : box.clientWidth * 0.8;
-
-  }
-
-  function arrows(box) {
-
-    var host = box.parentElement;
-
-    if (!host) return;
-
-    if (!box._kcBtns || !host.contains(box._kcBtns[0])) {
-
-      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-
-      box._kcBtns = ['\u2039', '\u203A'].map(function (ch, i) {
-
-        var b = D.createElement('button');
-
-        b.type = 'button';
-
-        b.className = 'kc-folio-btn';
-
-        b.textContent = ch;
-
-        b.setAttribute('aria-label', i ? 'Next plate' : 'Previous plate');
-
-        b.addEventListener('click', function () { box.scrollBy({ left: (i ? 1 : -1) * step(box), behavior: still ? 'auto' : 'smooth' }); });
-
-        host.appendChild(b);
-
-        return b;
-
-      });
-
-    }
-
-    var hr = host.getBoundingClientRect(), br = box.getBoundingClientRect(), top = Math.round(br.top - hr.top + br.height / 2 - 30);
-
-    box._kcBtns[0].style.top = box._kcBtns[1].style.top = top + 'px';
-
-    box._kcBtns[0].style.left = Math.round(br.left - hr.left + 10) + 'px';
-
-    box._kcBtns[1].style.left = Math.round(br.right - hr.left - 54) + 'px';
-
-    box._kcBtns[0].disabled = box.scrollLeft < 4;
-
-    box._kcBtns[1].disabled = box.scrollLeft > box.scrollWidth - box.clientWidth - 4;
-
-  }
-
-  function refresh(box) { tilt(box); arrows(box); }
-
-  function folio() {
-
-    var box = D.querySelector('.kc-folio');
-
-    if (box) { refresh(box); return; }
-
-    var tiles = [].filter.call(D.querySelectorAll('.kc-tile'), function (t) { return !t.closest('.kc-lb, .kc-card, header, footer, nav'); });
-
-    if (tiles.length < 4) return;
-
-    box = tiles[0].parentElement;
-
-    while (box && box !== D.body && holds(box, tiles) < tiles.length) box = box.parentElement;
-
-    if (!box || box === D.body) return;
-
-    // Every child of the gallery must hold exactly one plate; rows of plates are flattened
-
-    var pages = [], flats = [], skips = [], ok = true;
-
-    [].forEach.call(box.children, function (c) {
-
-      var n = holds(c, tiles);
-
-      if (n === 0) { if (c.textContent.trim()) ok = false; else skips.push(c); return; }
-
-      if (n === 1) { pages.push(c); return; }
-
-      flats.push(c);
-
-      [].forEach.call(c.children, function (g) {
-
-        var m = holds(g, tiles);
-
-        if (m === 1) pages.push(g); else if (m > 1 || g.textContent.trim()) ok = false; else skips.push(g);
-
-      });
-
-    });
-
-    if (!ok || pages.length !== tiles.length || pages.some(function (p) { return /^(IMG|PICTURE|VIDEO)$/.test(p.tagName); })) return;
-
-    box.classList.add('kc-folio');
-
-    box.setAttribute('tabindex', '0');
-
-    box.setAttribute('aria-label', 'Red Book plates, scroll sideways');
-
-    flats.forEach(function (f) { f.classList.add('kc-folio-flat'); });
-
-    skips.forEach(function (s) { s.classList.add('kc-folio-skip'); });
-
-    pages.forEach(function (p, i) {
-
-      p.classList.add('kc-folio-page');
-
-      if (p.classList.contains('kc-tile')) return; // the plate itself: nothing can hang below it
-
-      p.classList.add('kc-folio-leaf');
-
-      var no = D.createElement('span');
-
-      no.className = 'kc-folio-no';
-
-      no.setAttribute('aria-hidden', 'true');
-
-      no.textContent = 'fol. ' + (ROMAN[i] || i + 1);
-
-      p.appendChild(no);
-
-    });
-
-    var ticking = false;
-
-    box.addEventListener('scroll', function () {
-
-      if (ticking) return;
-
-      ticking = true;
-
-      requestAnimationFrame(function () { ticking = false; refresh(box); });
-
-    }, { passive: true });
-
-    requestAnimationFrame(function () { refresh(box); });
-
-  }
-
-  var prev = window.KCFOJ_wow;
-
-  window.KCFOJ_wow = function () {
-
-    if (prev) prev();
-
-    try { folio(); } catch (e) { if (window.console) console.warn('KCFOJ folio:', e); }
-
-  };
-
-})();
- 
