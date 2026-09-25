@@ -1302,67 +1302,58 @@ btn.id = 'kc-compass';
   };
 })();
 
-/* ===== Part 11 (add-on, temporary): banner check =====
+/* ===== Part 11 (add-on, temporary): gallery check =====
    Does nothing for visitors. Only when the address ends in #kcdebug, it shows
-   a box at the top of the screen listing the wide pictures near the top of the
-   page and why the script did or did not treat each one as the banner.
-   Safe to delete once the word band is fixed. */
+   a box at the top of the screen describing how Square builds the gallery of
+   Red Book plates, so the manuscript spread can be fitted to it.
+   Safe to delete once the spread is done. */
 (function () {
   var D = document;
   function cls(n) {
     var c = typeof n.className === 'string' ? n.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).join('.') : '';
-    return n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + (c ? '.' + c : '');
+    return n.tagName.toLowerCase() + (c ? '.' + c : '');
   }
-  function path(el) {
-    var out = [];
-    for (var n = el, k = 0; n && n !== D.body && k < 5; n = n.parentElement, k++) out.unshift(cls(n));
-    return out.join(' > ');
+  function box(n) {
+    var r = n.getBoundingClientRect(), s = getComputedStyle(n), out = cls(n) + ' | ' + s.display + (s.position !== 'static' ? ' ' + s.position : '') + ' | ' + Math.round(r.width) + 'x' + Math.round(r.height);
+    if (s.display.indexOf('grid') > -1) out += ' | cols ' + s.gridTemplateColumns.split(' ').length;
+    if (s.display.indexOf('flex') > -1) out += ' | ' + s.flexDirection + ' ' + s.flexWrap;
+    if (s.overflow !== 'visible') out += ' | overflow ' + s.overflow;
+    var st = (n.getAttribute('style') || '').replace(/\s+/g, ' ').slice(0, 70);
+    if (st) out += ' | style: ' + st;
+    return out;
   }
-  function picture(el) {
-    if (/^(IMG|PICTURE|VIDEO|CANVAS|SVG)$/i.test(el.tagName)) return el.tagName.toLowerCase();
-    if (getComputedStyle(el).backgroundImage.indexOf('url(') > -1) return 'background';
-    if (getComputedStyle(el, '::before').backgroundImage.indexOf('url(') > -1) return 'background on ::before';
-    if (getComputedStyle(el, '::after').backgroundImage.indexOf('url(') > -1) return 'background on ::after';
-    return '';
-  }
+  function holds(el, tiles) { return tiles.filter(function (t) { return el.contains(t); }).length; }
   function report() {
     if (location.hash !== '#kcdebug' || !D.body) return;
-    var vw = D.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
-    var found = D.querySelector('.kc-hero, .kc-hero-soft, .kc-hero-pre');
-    var lines = ['KCFOJ banner check | screen ' + window.innerWidth + 'x' + vh + ' | page ' + location.pathname,
-      'banner found by script: ' + (found ? 'YES ' + path(found) : 'NO') + ' | word band on page: ' + (D.querySelector('.kc-band') ? 'YES' : 'NO')];
-    ['header', '.kc-header'].forEach(function (s) {
-      var hs = [].map.call(D.querySelectorAll(s), function (h) { return cls(h) + ' ' + Math.round(h.getBoundingClientRect().height) + 'px'; });
-      lines.push(s + ': ' + (hs.length ? hs.join(' | ') : 'none'));
-    });
-    var all = D.body.querySelectorAll('*'), n = 0;
-    for (var i = 0; i < all.length && n < 6; i++) {
-      var el = all[i], r = el.getBoundingClientRect(), top = r.top + window.scrollY;
-      if (r.width < vw * 0.8 || r.height < 100 || top > 900 || el.id === 'kc-check') continue;
-      var pic = picture(el);
-      if (!pic) continue;
-      var why = [];
-      ['header', 'nav', 'a', 'button', '.kc-header', '.kc-card', '.kc-tile', '.kc-shadow', '.kc-veil', '.kc-lb'].forEach(function (s) {
-        var a = el.closest(s);
-        if (a) why.push('inside ' + s + (a === el ? ' (itself)' : ' (' + cls(a) + ')'));
+    var tiles = [].filter.call(D.querySelectorAll('.kc-tile'), function (t) { return !t.closest('.kc-lb, .kc-card, header, footer, nav'); });
+    var lines = ['KCFOJ gallery check | screen ' + window.innerWidth + 'x' + window.innerHeight + ' | tiles ' + tiles.length];
+    if (tiles.length) {
+      var c = tiles[0].parentElement;
+      while (c && c !== D.body && holds(c, tiles) < tiles.length) c = c.parentElement;
+      lines.push('GALLERY ' + box(c) + ' | children ' + c.children.length);
+      [].slice.call(c.children, 0, 3).forEach(function (k, i) {
+        lines.push(' child ' + (i + 1) + ': ' + box(k) + ' | plates ' + holds(k, tiles) + ' | text ' + k.textContent.trim().length);
       });
-      if (r.width < vw - 6) why.push('width ' + Math.round(r.width) + ' of ' + vw);
-      if (r.height < 160) why.push('only ' + Math.round(r.height) + 'px tall');
-      if (r.height > vh * 1.25) why.push('too tall (' + Math.round(r.height) + 'px)');
-      if (top > 700) why.push('starts ' + Math.round(top) + 'px down');
-      if (!/^(img|picture|video|background)$/.test(pic)) why.push('picture type not recognized');
-      n++;
-      lines.push(n + '. ' + pic + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' at ' + Math.round(top) + 'px: ' + (why.length ? why.join(', ') : 'looks usable') + '\n   ' + path(el));
+      lines.push('PATH from plate 1 up to gallery:');
+      for (var n = tiles[0], d = 0; n && n !== c && d < 8; n = n.parentElement, d++) lines.push(' ' + box(n) + (n.classList.contains('kc-tile') ? ' [plate]' : ''));
+      lines.push('PICTURES inside plate 1:');
+      var inner = [tiles[0]].concat([].slice.call(tiles[0].querySelectorAll('*'))), m = 0;
+      inner.forEach(function (el) {
+        if (m >= 3) return;
+        var s = getComputedStyle(el), pic = /^(IMG|PICTURE|VIDEO)$/.test(el.tagName) ? el.tagName.toLowerCase() : (s.backgroundImage.indexOf('url(') > -1 ? 'background' : '');
+        if (!pic) return;
+        m++;
+        lines.push(' ' + pic + ': ' + box(el) + (el.tagName === 'IMG' ? ' | fit ' + s.objectFit + ' | natural ' + el.naturalWidth + 'x' + el.naturalHeight : ''));
+      });
     }
-    if (!n) lines.push('No wide pictures found near the top of the page.');
-    var box = D.getElementById('kc-check');
-    if (!box) {
-      box = D.createElement('pre');
-      box.id = 'kc-check';
-      box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;max-height:60vh;overflow:auto;margin:0;padding:10px;background:#fff;color:#111;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;border:2px solid #1F2A2E;border-radius:6px';
-      D.body.appendChild(box);
+    var b = D.getElementById('kc-check');
+    if (!b) {
+      b = D.createElement('pre');
+      b.id = 'kc-check';
+      b.style.cssText = 'position:fixed;left:6px;right:6px;top:6px;z-index:2147483647;max-height:85vh;overflow:auto;margin:0;padding:8px;background:#fff;color:#111;font:10px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;border:2px solid #1F2A2E;border-radius:6px';
+      D.body.appendChild(b);
     }
-    box.textContent = lines.join('\n');
+    b.textContent = lines.join('\n');
   }
   setTimeout(report, 4500);
   setTimeout(report, 10000);
