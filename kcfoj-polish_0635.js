@@ -789,3 +789,112 @@ html.kc-lock{overflow:hidden}
     try { illuminate(); } catch (e) { if (window.console) console.warn('KCFOJ add-on:', e); }
   };
 })();
+/* ===== Part 5 (add-on): mandala compass =====
+  A small gold mandala in the corner that draws itself line by line as
+  you scroll and completes at the bottom of the page. Tap it to return
+  to the top. Paste at the very end of the file, after Part 4. */
+(function () {
+ var D = document, R = D.documentElement;
+ var SIDE = 'right'; // change to 'left' if something else lives in that corner
+ var still = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+ var css = `
+.kc-compass{position:fixed;${SIDE}:max(16px,env(safe-area-inset-${SIDE},0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2147483300;width:52px;height:52px;padding:0;margin:0;border:0;border-radius:50%;background:var(--kc-cream);box-shadow:0 10px 24px -12px rgba(31,42,46,.5),0 0 0 1px rgba(168,132,79,.35);cursor:pointer;opacity:0;transform:translateY(10px) scale(.92);pointer-events:none;transition:opacity .5s ease,transform .6s var(--kc-e),box-shadow .5s ease;-webkit-tap-highlight-color:transparent}
+.kc-compass.kc-on{opacity:1;transform:none;pointer-events:auto}
+.kc-compass svg{display:block;width:100%;height:100%}
+.kc-compass .kc-cg>*{fill:none;stroke:var(--kc-gold);stroke-width:2.2;stroke-linecap:round}
+.kc-compass .kc-cg-ghost{opacity:.2}
+.kc-compass .kc-cdot{fill:var(--kc-gold);opacity:.35;transition:fill .6s ease,opacity .6s ease}
+.kc-compass.kc-done .kc-cdot{fill:var(--kc-accent);opacity:1}
+.kc-compass.kc-done{box-shadow:0 10px 24px -12px rgba(31,42,46,.5),0 0 0 1px var(--kc-gold),0 0 18px -2px rgba(168,132,79,.55)}
+@media (hover:hover){.kc-compass.kc-on:hover{transform:scale(1.07)}}
+@media (max-width:600px){.kc-compass{width:46px;height:46px}}
+.kc-lock .kc-compass{opacity:0;pointer-events:none}
+.kc-still .kc-compass,.kc-still .kc-compass .kc-cdot{transition:none}
+@media print{.kc-compass{display:none}}
+`;
+ var tag = D.createElement('style');
+ tag.textContent = css;
+ (D.head || R).appendChild(tag);
+ // The same figure as the intro mandala, simplified to read at 50px: ring, 12 petals, inner ring, star
+ function shapes() {
+   var s = '<circle r="46"/>';
+   for (var i = 0; i < 12; i++) s += '<ellipse rx="7.5" ry="19" cy="-24" transform="rotate(' + i * 30 + ')"/>';
+   return s + '<circle r="20"/><path d="M0 -12L3.5 -3.5 12 0 3.5 3.5 0 12 -3.5 3.5 -12 0 -3.5 -3.5Z"/>';
+ }
+ var btn = D.createElement('button');
+ btn.type = 'button';
+btn.id = 'kc-compass';
+ btn.className = 'kc-compass';
+ btn.title = 'Back to top';
+ btn.setAttribute('aria-label', 'Back to top');
+ btn.setAttribute('aria-hidden', 'true');
+ btn.tabIndex = -1;
+ btn.innerHTML = '<svg viewBox="-50 -50 100 100" aria-hidden="true" focusable="false"><g class="kc-cg kc-cg-ghost">' + shapes() + '</g><g class="kc-cg kc-cg-ink">' + shapes() + '</g><circle class="kc-cdot" r="4.5"/></svg>';
+ var ink = [], lens = [], lastP = -1, inner = null, ticking = false;
+ function measure() {
+   ink = [].slice.call(btn.querySelectorAll('.kc-cg-ink > *'));
+   lens = ink.map(function (el) { var L = 0; try { L = el.getTotalLength(); } catch (e) {} return Math.ceil(L || 300) + 1; });
+   ink.forEach(function (el, i) { el.style.strokeDasharray = lens[i]; el.style.strokeDashoffset = lens[i]; });
+   lastP = -1;
+ }
+ // Each line takes its turn: the outer ring first, then the petals clockwise, then the inner ring and star
+ function draw(p) {
+   if (p === lastP) return;
+   lastP = p;
+   var k = p * ink.length;
+   for (var i = 0; i < ink.length; i++) {
+     var f = Math.min(1, Math.max(0, k - i));
+     ink[i].style.strokeDashoffset = (lens[i] * (1 - f)).toFixed(1);
+   }
+   btn.classList.toggle('kc-done', p >= 1);
+ }
+ // Square normally scrolls the page itself; fall back to an inner scrolling box if it doesn't
+ function findScroller() {
+   var se = D.scrollingElement || R;
+   inner = null;
+   if (se.scrollHeight - window.innerHeight > 40) return;
+   var c = D.querySelectorAll('body, body > *, body > * > *, main');
+   for (var i = 0; i < c.length; i++) {
+     var s = getComputedStyle(c[i]);
+     if (/auto|scroll/.test(s.overflowY) && c[i].scrollHeight - c[i].clientHeight > 40 && c[i].clientHeight >= window.innerHeight * 0.7) { inner = c[i]; return; }
+   }
+ }
+ function where() {
+   var top, max, se = D.scrollingElement || R;
+   if (inner) { top = inner.scrollTop; max = inner.scrollHeight - inner.clientHeight; }
+   else { top = window.pageYOffset || se.scrollTop; max = se.scrollHeight - window.innerHeight; }
+   return { top: top, p: max > 40 ? Math.min(1, Math.max(0, top / max) / 0.985) : -1 };
+ }
+ function update() {
+   ticking = false;
+   if (!D.contains(btn)) return;
+   var w = where();
+   var on = w.p >= 0 && w.top > 140 && !D.querySelector('.kc-veil');
+   if (on !== btn.classList.contains('kc-on')) {
+     btn.classList.toggle('kc-on', on);
+     btn.setAttribute('aria-hidden', on ? 'false' : 'true');
+     btn.tabIndex = on ? 0 : -1;
+   }
+   draw(w.p < 0 ? 0 : w.p);
+ }
+ function queue() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+ function mount() {
+   if (!D.body) return;
+   if (!D.contains(btn)) { D.body.appendChild(btn); measure(); }
+   findScroller();
+   queue();
+ }
+ btn.addEventListener('click', function () {
+   var to = { top: 0, behavior: still ? 'auto' : 'smooth' };
+   if (inner) inner.scrollTo(to); else window.scrollTo(to);
+   if (D.activeElement === btn) btn.blur();
+ });
+ D.addEventListener('scroll', queue, { capture: true, passive: true });
+ window.addEventListener('resize', function () { findScroller(); queue(); }, { passive: true });
+ var prev = window.KCFOJ_wow;
+ window.KCFOJ_wow = function () {
+   if (prev) prev();
+   try { mount(); } catch (e) { if (window.console) console.warn('KCFOJ compass:', e); }
+ };
+ if (D.readyState !== 'loading') mount(); else D.addEventListener('DOMContentLoaded', mount);
+})();
