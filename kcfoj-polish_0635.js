@@ -1,4 +1,4 @@
-/* KC Friends of Jung: premium polish + the "oh wow" layer (v2).
+/* KC Friends of Jung: premium polish + the "oh wow" layer (v2.1).
    Loaded on every page by one short script tag in Square's Tracking tools.
    Part 1 is the CSS. Part 2 finds your buttons, cards, gallery tiles and
    footer by their current colors and tags them, since Square doesn't
@@ -228,9 +228,9 @@ nav a:not(.kc-btn):not(.kc-btn-outline){text-transform:uppercase;letter-spacing:
   schedule();
 })();
 
-/* ===== Part 3: the "oh wow" layer =====
+/* ===== Part 3: the "oh wow" layer (v2.1: scroll-safe) =====
    Arrival veil, breathing hero, scroll reveals, word band,
-   Red Book viewer, Shadow section and paper grain.
+   Red Book viewer and Shadow section.
    Edit the words and the quote in KC below. */
 (function () {
   var KC = {
@@ -259,15 +259,15 @@ html.kc-lock{overflow:hidden}
 @keyframes kcTurn{from{transform:rotate(-40deg) scale(.92)}to{transform:none}}
 
 /* 2. Breathing hero */
-.kc-hero-wrap{overflow:hidden!important}
+.kc-hero-wrap{overflow:clip!important}
 .kc-hero-pre{filter:blur(18px) saturate(.5);transform:scale(1.14);opacity:.35}
 .kc-hero{transform-origin:50% 60%;animation:kcSurface 2.8s var(--kc-e) both,kcBreathe 22s 2.8s ease-in-out infinite alternate}
 .kc-hero-soft{animation:kcSurfaceSoft 2.4s var(--kc-e) both}
 @keyframes kcSurface{from{filter:blur(18px) saturate(.5);transform:scale(1.14);opacity:.35}to{filter:blur(0) saturate(1);transform:scale(1);opacity:1}}
 @keyframes kcSurfaceSoft{from{filter:blur(18px);opacity:.35}to{filter:blur(0);opacity:1}}
 @keyframes kcBreathe{from{transform:scale(1)}to{transform:scale(1.07)}}
-.kc-aurora{position:absolute;inset:-25%;z-index:1;pointer-events:none;mix-blend-mode:soft-light;opacity:.7;background:radial-gradient(38% 46% at 22% 32%,rgba(235,163,113,.95),transparent 70%),radial-gradient(42% 52% at 78% 68%,rgba(0,102,120,.85),transparent 70%),radial-gradient(30% 40% at 58% 18%,rgba(255,244,226,.9),transparent 70%);animation:kcDrift 24s ease-in-out infinite alternate}
-@keyframes kcDrift{from{transform:translate(-5%,-3%) rotate(0deg)}to{transform:translate(6%,5%) rotate(10deg)}}
+.kc-aurora{position:absolute;inset:0;background-size:180% 180%!important;z-index:1;pointer-events:none;mix-blend-mode:soft-light;opacity:.7;background:radial-gradient(38% 46% at 22% 32%,rgba(235,163,113,.95),transparent 70%),radial-gradient(42% 52% at 78% 68%,rgba(0,102,120,.85),transparent 70%),radial-gradient(30% 40% at 58% 18%,rgba(255,244,226,.9),transparent 70%);animation:kcDrift 24s ease-in-out infinite alternate}
+@keyframes kcDrift{from{background-position:0% 0%}to{background-position:100% 100%}}
 
 /* 3. Scroll reveals and the word band */
 .kc-rv.kc-rv,.kc-rv-h.kc-rv-h{transition:opacity 1.2s var(--kc-e),transform 1.2s var(--kc-e),filter 1.4s var(--kc-e)!important}
@@ -308,8 +308,6 @@ html.kc-lock{overflow:hidden}
 @media (hover:hover) and (pointer:fine){.kc-shadow{cursor:none}.kc-shadow:hover .kc-lantern{opacity:1}}
 .kc-lit .kc-shadow-q{color:#F8F1E4;background:none}
 
-/* 6. Paper grain */
-.kc-grain{position:fixed;inset:0;z-index:2147483000;pointer-events:none;opacity:.06;background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .18 0 0 0 0 .13 0 0 0 0 .08 0 0 0 1.6 -.55'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>") repeat;background-size:180px}
 
 .kc-still .kc-band-track,.kc-still .kc-aurora{animation:none}
 `;
@@ -375,10 +373,19 @@ html.kc-lock{overflow:hidden}
     }
     v.addEventListener('click', lift);
     setTimeout(lift, 2400);
+    setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); veilUp = false; }, 4500);
   }
 
   // 2. Hero: surfaces from a blur, then slowly breathes under a drifting aurora
   var heroEl = null, heroSoft = false;
+  // Only clip a small, plain box around the hero: never the page, never anything that scrolls
+  function safeWrap(w, r) {
+    if (!w || w === D.body || w === R || !(window.CSS && CSS.supports && CSS.supports('overflow', 'clip'))) return false;
+    var s = getComputedStyle(w), wr = rect(w);
+    if (/auto|scroll|overlay/.test(s.overflowY + s.overflowX)) return false;
+    if (w.scrollHeight > w.clientHeight + 4) return false;
+    return wr.height <= r.height * 1.25 && wr.height <= window.innerHeight * 1.3;
+  }
   function surface() {
     if (!heroEl || still) return;
     heroEl.classList.remove('kc-hero', 'kc-hero-soft');
@@ -396,10 +403,10 @@ html.kc-lock{overflow:hidden}
       var el = all[i];
       if (el.closest('header, nav, .kc-veil, .kc-header, .kc-lb')) continue;
       var r = rect(el);
-      if (r.width < vw * 0.9 || r.height < 160 || r.top + window.scrollY > 700) continue;
+      if (r.width < vw * 0.9 || r.height < 160 || r.height > window.innerHeight * 1.25 || r.top + window.scrollY > 700) continue;
       if (!/^(IMG|PICTURE|VIDEO)$/.test(el.tagName) && getComputedStyle(el).backgroundImage.indexOf('url(') < 0) continue;
       var wrap = el.parentElement;
-      heroSoft = !wrap || rect(wrap).height > r.height * 1.6;
+      heroSoft = !safeWrap(wrap, r);
       heroEl = el;
       if (!heroSoft) {
         wrap.classList.add('kc-hero-wrap');
@@ -591,13 +598,17 @@ html.kc-lock{overflow:hidden}
     lantern(shadowEl);
   }
 
-  // 6. Paper grain
-  function grain() { if (!D.querySelector('.kc-grain')) D.body.appendChild(mk('div', 'kc-grain')); }
+
+  function unstick() {
+    if (R.classList.contains('kc-lock') && !(lb && lb.classList.contains('kc-open'))) R.classList.remove('kc-lock');
+  }
+  setInterval(unstick, 1500);
+  ['wheel', 'touchstart', 'keydown'].forEach(function (ev) { window.addEventListener(ev, unstick, { passive: true }); });
 
   showVeil(false);
   window.KCFOJ_wow = function () {
     if (!D.body) return;
-    [grain, hero, band, shadow, gallery, reveal].forEach(function (f) {
+    [hero, band, shadow, gallery, reveal].forEach(function (f) {
       try { f(); } catch (e) { if (window.console) console.warn('KCFOJ wow:', e); }
     });
   };
