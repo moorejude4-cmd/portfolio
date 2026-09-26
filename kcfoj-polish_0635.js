@@ -1326,7 +1326,17 @@ btn.id = 'kc-compass';
   function report() {
     if (location.hash !== '#kcdebug' || !D.body) return;
     var tiles = [].filter.call(D.querySelectorAll('.kc-tile'), function (t) { return !t.closest('.kc-lb, .kc-card, header, footer, nav'); });
-    var lines = ['KCFOJ gallery check | screen ' + window.innerWidth + 'x' + window.innerHeight + ' | tiles ' + tiles.length];
+    var src = 'tagged plates';
+    if (tiles.length < 4) {
+      // Fall back to plain pictures, in case the plates have not been tagged yet
+      var vw = window.innerWidth;
+      tiles = [].filter.call(D.querySelectorAll('img'), function (im) {
+        var r = im.getBoundingClientRect();
+        return !im.closest('.kc-lb, .kc-card, header, footer, nav, .kc-band, .kc-shadow') && r.width >= 60 && r.width <= vw * 0.9;
+      });
+      src = 'pictures (' + D.querySelectorAll('.kc-tile').length + ' tagged)';
+    }
+    var lines = ['KCFOJ gallery check | screen ' + window.innerWidth + 'x' + window.innerHeight + ' | scrolled ' + Math.round(window.scrollY) + ' | ' + src + ' ' + tiles.length];
     if (tiles.length) {
       var c = tiles[0].parentElement;
       while (c && c !== D.body && holds(c, tiles) < tiles.length) c = c.parentElement;
@@ -1358,4 +1368,7 @@ btn.id = 'kc-compass';
   setTimeout(report, 4500);
   setTimeout(report, 10000);
   window.addEventListener('hashchange', function () { setTimeout(report, 300); });
+  // Update as you scroll, since Square loads the pictures only when they come into view
+  var t = 0;
+  window.addEventListener('scroll', function () { clearTimeout(t); t = setTimeout(report, 700); }, { passive: true });
 })();
