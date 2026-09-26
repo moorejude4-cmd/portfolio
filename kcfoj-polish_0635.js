@@ -1302,73 +1302,170 @@ btn.id = 'kc-compass';
   };
 })();
 
-/* ===== Part 11 (add-on, temporary): gallery check =====
-   Does nothing for visitors. Only when the address ends in #kcdebug, it shows
-   a box at the top of the screen describing how Square builds the gallery of
-   Red Book plates, so the manuscript spread can be fitted to it.
-   Safe to delete once the spread is done. */
+
+/* ===== Part 11 (add-on): Red Book plates as a manuscript spread (v2) =====
+   Turns the grid of Red Book plates into a swipeable spread of folio pages
+   that tilt gently as they pass the center, with folio numerals beneath.
+   Tapping a plate still opens it full screen. Fitted to Square's image
+   gallery (grid > image-cell > wrappers > img). If the result ever measures
+   wrong, it puts the grid back by itself. Paste at the very end, after Part 10. */
 (function () {
   var D = document;
-  function cls(n) {
-    var c = typeof n.className === 'string' ? n.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).join('.') : '';
-    return n.tagName.toLowerCase() + (c ? '.' + c : '');
-  }
-  function box(n) {
-    var r = n.getBoundingClientRect(), s = getComputedStyle(n), out = cls(n) + ' | ' + s.display + (s.position !== 'static' ? ' ' + s.position : '') + ' | ' + Math.round(r.width) + 'x' + Math.round(r.height);
-    if (s.display.indexOf('grid') > -1) out += ' | cols ' + s.gridTemplateColumns.split(' ').length;
-    if (s.display.indexOf('flex') > -1) out += ' | ' + s.flexDirection + ' ' + s.flexWrap;
-    if (s.overflow !== 'visible') out += ' | overflow ' + s.overflow;
-    var st = (n.getAttribute('style') || '').replace(/\s+/g, ' ').slice(0, 70);
-    if (st) out += ' | style: ' + st;
-    return out;
-  }
+  var still = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var css = `
+.kc-folio{--kc-page:min(64vw,300px);display:flex!important;flex-wrap:nowrap!important;align-items:flex-start!important;gap:clamp(18px,3vw,34px)!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px calc(50% - var(--kc-page) / 2) 26px!important;margin-left:0!important;margin-right:0!important;max-width:none!important;height:auto!important;perspective:1400px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+.kc-folio::-webkit-scrollbar{display:none}
+.kc-folio:focus-visible{outline:2px solid var(--kc-accent);outline-offset:4px}
+.kc-folio-flat{display:contents!important}
+.kc-folio-skip{display:none!important}
+.kc-folio-page{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;position:relative!important;inset:auto!important;scroll-snap-align:center;transform-origin:50% 50%}
+.kc-folio-leaf{overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important}
+.kc-folio-top{flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:calc(var(--kc-page) * var(--kc-ratio,1.31))!important;max-height:none!important;min-height:0!important;margin:0!important;position:relative!important}
+.kc-folio-fill{flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important}
+.kc-folio-abs{position:absolute!important;inset:0!important}
+.kc-folio-img{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:50% 50%!important}
+.kc-folio-no{display:block;margin-top:14px;text-align:center;font:italic 400 14px/1 'Playfair Display',Georgia,serif;letter-spacing:.08em;color:var(--kc-gold);pointer-events:none}
+.kc-folio-btn{position:absolute;z-index:3;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--kc-gold);border-radius:50%;background:var(--kc-cream);color:var(--kc-accent);font:400 26px/1 Georgia,serif;cursor:pointer;box-shadow:0 8px 20px -10px rgba(20,12,10,.5);transition:opacity .3s ease}
+.kc-folio-btn[disabled]{opacity:0;pointer-events:none}
+@media (min-width:900px){.kc-folio{--kc-page:min(24vw,300px)}}
+@media (max-width:899px){.kc-folio-btn{display:none}}
+.kc-still .kc-folio{scroll-behavior:auto}
+.kc-still .kc-folio-btn{transition:none}
+`;
+  var tag = D.createElement('style');
+  tag.textContent = css;
+  (D.head || D.documentElement).appendChild(tag);
+
+  var ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi'];
   function holds(el, tiles) { return tiles.filter(function (t) { return el.contains(t); }).length; }
-  function report() {
-    if (location.hash !== '#kcdebug' || !D.body) return;
-    var tiles = [].filter.call(D.querySelectorAll('.kc-tile'), function (t) { return !t.closest('.kc-lb, .kc-card, header, footer, nav'); });
-    var src = 'tagged plates';
-    if (tiles.length < 4) {
-      // Fall back to plain pictures, in case the plates have not been tagged yet
-      var vw = window.innerWidth;
-      tiles = [].filter.call(D.querySelectorAll('img'), function (im) {
-        var r = im.getBoundingClientRect();
-        return !im.closest('.kc-lb, .kc-card, header, footer, nav, .kc-band, .kc-shadow') && r.width >= 60 && r.width <= vw * 0.9;
-      });
-      src = 'pictures (' + D.querySelectorAll('.kc-tile').length + ' tagged)';
-    }
-    var lines = ['KCFOJ gallery check | screen ' + window.innerWidth + 'x' + window.innerHeight + ' | scrolled ' + Math.round(window.scrollY) + ' | ' + src + ' ' + tiles.length];
-    if (tiles.length) {
-      var c = tiles[0].parentElement;
-      while (c && c !== D.body && holds(c, tiles) < tiles.length) c = c.parentElement;
-      lines.push('GALLERY ' + box(c) + ' | children ' + c.children.length);
-      [].slice.call(c.children, 0, 3).forEach(function (k, i) {
-        lines.push(' child ' + (i + 1) + ': ' + box(k) + ' | plates ' + holds(k, tiles) + ' | text ' + k.textContent.trim().length);
-      });
-      lines.push('PATH from plate 1 up to gallery:');
-      for (var n = tiles[0], d = 0; n && n !== c && d < 8; n = n.parentElement, d++) lines.push(' ' + box(n) + (n.classList.contains('kc-tile') ? ' [plate]' : ''));
-      lines.push('PICTURES inside plate 1:');
-      var inner = [tiles[0]].concat([].slice.call(tiles[0].querySelectorAll('*'))), m = 0;
-      inner.forEach(function (el) {
-        if (m >= 3) return;
-        var s = getComputedStyle(el), pic = /^(IMG|PICTURE|VIDEO)$/.test(el.tagName) ? el.tagName.toLowerCase() : (s.backgroundImage.indexOf('url(') > -1 ? 'background' : '');
-        if (!pic) return;
-        m++;
-        lines.push(' ' + pic + ': ' + box(el) + (el.tagName === 'IMG' ? ' | fit ' + s.objectFit + ' | natural ' + el.naturalWidth + 'x' + el.naturalHeight : ''));
-      });
-    }
-    var b = D.getElementById('kc-check');
-    if (!b) {
-      b = D.createElement('pre');
-      b.id = 'kc-check';
-      b.style.cssText = 'position:fixed;left:6px;right:6px;top:6px;z-index:2147483647;max-height:85vh;overflow:auto;margin:0;padding:8px;background:#fff;color:#111;font:10px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;border:2px solid #1F2A2E;border-radius:6px';
-      D.body.appendChild(b);
-    }
-    b.textContent = lines.join('\n');
+
+  // Pages lean away and shrink slightly as they move off center, like leaves of a book
+  function tilt(box) {
+    if (still) return;
+    var br = box.getBoundingClientRect(), cx = br.left + br.width / 2;
+    [].forEach.call(box.querySelectorAll('.kc-folio-page'), function (p) {
+      var r = p.getBoundingClientRect(), k = Math.max(-1, Math.min(1, (r.left + r.width / 2 - cx) / br.width * 2.2));
+      // A page that is itself the plate keeps Part 3's hover tilt, so it only fades
+      if (p.classList.contains('kc-folio-leaf')) p.style.transform = 'rotateY(' + (-k * 16).toFixed(2) + 'deg) scale(' + (1 - Math.abs(k) * 0.08).toFixed(3) + ')';
+      p.style.opacity = (1 - Math.abs(k) * 0.25).toFixed(3);
+    });
   }
-  setTimeout(report, 4500);
-  setTimeout(report, 10000);
-  window.addEventListener('hashchange', function () { setTimeout(report, 300); });
-  // Update as you scroll, since Square loads the pictures only when they come into view
-  var t = 0;
-  window.addEventListener('scroll', function () { clearTimeout(t); t = setTimeout(report, 700); }, { passive: true });
+  function step(box) {
+    var ps = box.querySelectorAll('.kc-folio-page');
+    return ps.length > 1 ? ps[1].getBoundingClientRect().left - ps[0].getBoundingClientRect().left : box.clientWidth * 0.8;
+  }
+  function arrows(box) {
+    var host = box.parentElement;
+    if (!host) return;
+    if (!box._kcBtns || !host.contains(box._kcBtns[0])) {
+      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+      box._kcBtns = ['\u2039', '\u203A'].map(function (ch, i) {
+        var b = D.createElement('button');
+        b.type = 'button';
+        b.className = 'kc-folio-btn';
+        b.textContent = ch;
+        b.setAttribute('aria-label', i ? 'Next plate' : 'Previous plate');
+        b.addEventListener('click', function () { box.scrollBy({ left: (i ? 1 : -1) * step(box), behavior: still ? 'auto' : 'smooth' }); });
+        host.appendChild(b);
+        return b;
+      });
+    }
+    var hr = host.getBoundingClientRect(), br = box.getBoundingClientRect(), top = Math.round(br.top - hr.top + br.height / 2 - 30);
+    box._kcBtns[0].style.top = box._kcBtns[1].style.top = top + 'px';
+    box._kcBtns[0].style.left = Math.round(br.left - hr.left + 10) + 'px';
+    box._kcBtns[1].style.left = Math.round(br.right - hr.left - 54) + 'px';
+    box._kcBtns[0].disabled = box.scrollLeft < 4;
+    box._kcBtns[1].disabled = box.scrollLeft > box.scrollWidth - box.clientWidth - 4;
+  }
+  function refresh(box) { tilt(box); arrows(box); }
+
+  function undo(box) {
+    box.dataset.kcFolioOff = '1';
+    ['kc-folio', 'kc-folio-flat', 'kc-folio-skip', 'kc-folio-page', 'kc-folio-leaf', 'kc-folio-top', 'kc-folio-fill', 'kc-folio-abs', 'kc-folio-img'].forEach(function (c) {
+      [].forEach.call(D.querySelectorAll('.' + c), function (el) { el.classList.remove(c); el.style.transform = ''; el.style.opacity = ''; });
+    });
+    [].forEach.call(D.querySelectorAll('.kc-folio-no, .kc-folio-btn'), function (el) { el.parentNode.removeChild(el); });
+    box.removeAttribute('tabindex');
+    box.removeAttribute('aria-label');
+    box.style.removeProperty('--kc-ratio');
+    if (window.console) console.warn('KCFOJ folio: plates measured wrong, grid restored');
+  }
+  function folio() {
+    var box = D.querySelector('.kc-folio');
+    if (box) { refresh(box); return; }
+    var tiles = [].filter.call(D.querySelectorAll('.kc-tile'), function (t) { return !t.closest('.kc-lb, .kc-card, header, footer, nav'); });
+    if (tiles.length < 4) return;
+    box = tiles[0].parentElement;
+    while (box && box !== D.body && holds(box, tiles) < tiles.length) box = box.parentElement;
+    if (!box || box === D.body || box.dataset.kcFolioOff) return;
+    // Every child of the gallery must hold exactly one plate; rows of plates are flattened
+    var pages = [], flats = [], skips = [], ok = true;
+    [].forEach.call(box.children, function (c) {
+      var n = holds(c, tiles);
+      if (n === 0) { if (c.textContent.trim()) ok = false; else skips.push(c); return; }
+      if (n === 1) { pages.push(c); return; }
+      flats.push(c);
+      [].forEach.call(c.children, function (g) {
+        var m = holds(g, tiles);
+        if (m === 1) pages.push(g); else if (m > 1 || g.textContent.trim()) ok = false; else skips.push(g);
+      });
+    });
+    if (!ok || pages.length !== tiles.length || pages.some(function (p) { return /^(IMG|PICTURE|VIDEO)$/.test(p.tagName); })) return;
+    // Plate shape from the first picture (Red Book plates are tall pages)
+    var im0 = tiles[0].tagName === 'IMG' ? tiles[0] : tiles[0].querySelector('img'), ratio = 1.31;
+    if (im0 && im0.naturalWidth && im0.naturalHeight) ratio = Math.max(0.6, Math.min(2, im0.naturalHeight / im0.naturalWidth));
+    box.style.setProperty('--kc-ratio', ratio.toFixed(3));
+    box.classList.add('kc-folio');
+    box.setAttribute('tabindex', '0');
+    box.setAttribute('aria-label', 'Red Book plates, scroll sideways');
+    flats.forEach(function (f) { f.classList.add('kc-folio-flat'); });
+    skips.forEach(function (s) { s.classList.add('kc-folio-skip'); });
+    pages.forEach(function (p, i) {
+      p.classList.add('kc-folio-page');
+      if (p.classList.contains('kc-tile')) return; // the plate itself: nothing can hang below it
+      p.classList.add('kc-folio-leaf');
+      // Make every wrapper between the page and its plate fill the page, so Square's fixed sizes let go
+      var t = tiles.filter(function (x) { return p.contains(x); })[0], chain = [];
+      for (var n = t.parentElement; n && n !== p; n = n.parentElement) chain.push(n);
+      var top = chain.length ? chain[chain.length - 1] : t;
+      chain.forEach(function (c) {
+        c.classList.add(c === top ? 'kc-folio-top' : 'kc-folio-fill');
+        if (c !== top && getComputedStyle(c).position === 'absolute') c.classList.add('kc-folio-abs');
+      });
+      if (t === top) t.classList.add('kc-folio-top');
+      var img = t.tagName === 'IMG' ? t : t.querySelector('img');
+      if (t !== top && t !== img) t.classList.add('kc-folio-fill');
+      if (img) img.classList.add('kc-folio-img');
+      var no = D.createElement('span');
+      no.className = 'kc-folio-no';
+      no.setAttribute('aria-hidden', 'true');
+      no.textContent = 'fol. ' + (ROMAN[i] || i + 1);
+      p.appendChild(no);
+    });
+    // On wide screens, open on the second plate so the spread has a page on each side
+    if (pages.length > 2 && window.matchMedia && window.matchMedia('(min-width: 900px)').matches) {
+      box.style.scrollBehavior = 'auto';
+      box.scrollLeft = step(box);
+      box.style.scrollBehavior = '';
+    }
+    // Self-check: every plate must fill at least half its page, or everything is undone
+    var bad = tiles.some(function (x) {
+      var pg = x.closest('.kc-folio-page'), a = x.getBoundingClientRect().width, b = pg ? pg.getBoundingClientRect().width : 0;
+      return !b || a < b * 0.5;
+    });
+    if (bad) { undo(box); return; }
+    var ticking = false;
+    box.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () { ticking = false; refresh(box); });
+    }, { passive: true });
+    requestAnimationFrame(function () { refresh(box); });
+  }
+
+  var prev = window.KCFOJ_wow;
+  window.KCFOJ_wow = function () {
+    if (prev) prev();
+    try { folio(); } catch (e) { if (window.console) console.warn('KCFOJ folio:', e); }
+  };
 })();
