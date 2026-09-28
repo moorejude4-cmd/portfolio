@@ -37,7 +37,7 @@
      KCFOJ_margin()        where each margin note went and why
      KCFOJ.replayIntro()   plays the arrival veil and banner again
    Add #kcdebug to a page address to see how the band under the banner was placed. */
-if (!window.KCFOJ_RUNNING) {
+window.KCFOJ_SKIP = !!window.KCFOJ_RUNNING;
 window.KCFOJ_RUNNING = true;
 
 
@@ -160,7 +160,7 @@ window.KCFOJ_WORDS = {
 };
 
 /* ----- Shared helpers (no need to edit) ----- */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var W = window.KCFOJ_WORDS || (window.KCFOJ_WORDS = {});
   var F = W.features || {};
   // Older settings keep working: indexMotion was v3.0's name for the drifting band
@@ -285,7 +285,7 @@ window.KCFOJ_WORDS = {
      runs once per frame at most, just before the frame is drawn.
    - The observer ignores its own writes, cools off any element Square is
      animating, and never rescans the whole page for a small change. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
   var mark = window.KCFOJ_mark, has = window.KCFOJ_has, self = window.KCFOJ_self;
   var RAD = Math.max(0, Math.min(24, +W.corners === +W.corners ? +W.corners : 2));
@@ -1083,7 +1083,7 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
    page, where a candle carries a quote and a hidden mandala out of the dark.
    It also lifts the boot block's vellum cover once the page is ready.
    Words and switches live in Part 0. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
   var listen = window.KCFOJ_listen || function () {};
   var mark = window.KCFOJ_mark, unmark = window.KCFOJ_unmark, has = window.KCFOJ_has, self = window.KCFOJ_self;
@@ -1943,7 +1943,7 @@ html.kc-lock{overflow:hidden}
    so a page reads as chapters; page titles get a pilcrow) and, from v2.6, a
    rubric ornament beneath it: two gold rules and a red star. The first long
    paragraph after a heading opens with an illuminated initial. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var D = document, on = window.KCFOJ_on || function () { return true; }, mark = window.KCFOJ_mark;
   var roman = window.KCFOJ_roman || function (n) { return String(n); };
   var STAR = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0L7.6 4.4 12 6 7.6 7.6 6 12 4.4 7.6 0 6 4.4 4.4z' fill='%238B2A24'/%3E%3C/svg%3E\")";
@@ -2016,7 +2016,7 @@ html.kc-lock{overflow:hidden}
    its heart turns red. Point at it (or reach it with the keyboard) and a
    hand points up; tap it to return to the top. With mandalaNav off in
    Part 0 it is the plain ink ring with the hand. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
  var D = document, R = D.documentElement, on = window.KCFOJ_on || function () { return true; };
  var listen = window.KCFOJ_listen || function () {};
  var SIDE = 'right'; // change to 'left' if something else lives in that corner
@@ -2144,7 +2144,7 @@ html.kc-lock{overflow:hidden}
 /* ===== Part 6: event date seals =====
   A date seal on the corner of each event photo: weekday, a large rubric
   day number and the month in small capitals, framed in gold. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
  var D = document, on = window.KCFOJ_on || function () { return true; }, mark = window.KCFOJ_mark;
  var HIDE_PILL = true; // false keeps Square's own date pill under the photo as well
  var css = `
@@ -2241,7 +2241,7 @@ html.kc-lock{overflow:hidden}
      under a heading containing Vocabulary, Lexicon or Glossary. Each term
      gets an anchor (#kc-shadow), so a Lexicon page built this way can be
      linked from the margin notes: set lexiconUrl in Part 0. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
  var D = document, mark = window.KCFOJ_mark;
  var EPI = '[data-kc-about="epi"]', BY = '[data-kc-about="by"]', TL = '[data-kc-about="tl"]', LEX = '[data-kc-about="lex"]';
  var css = `
@@ -2332,7 +2332,7 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
   A first visit keeps the night page's original quote. Each later visit
   shows the next quote in the list, and it stays the same for that whole
   visit. Edit QUOTES to change the set; the first entry is the default. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
  var D = document, on = window.KCFOJ_on || function () { return true; };
  var QUOTES = [
    'Who looks outside, dreams; who looks inside, awakes.',                                             // Letter to Fanny Bowditch, 22 October 1916 (Letters, vol. 1)
@@ -2384,7 +2384,7 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
    margin is taken, tap the word for the same note. The words in the index
    line, and the drifting words above it, open these notes too.
    Terms and wording live in Part 0. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var D = document, R = D.documentElement, W = window.KCFOJ_WORDS || {};
   var on = window.KCFOJ_on || function () { return true; }, listen = window.KCFOJ_listen || function () {};
   var mark = window.KCFOJ_mark, has = window.KCFOJ_has;
@@ -2780,7 +2780,7 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
       "8 Oct 2026", "2026-10-08" or "10/8/2026").
    Otherwise there is no ribbon, so an archived event can never read "Today".
    If the seal shows a weekday, it must agree with the date as well. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var D = document, on = window.KCFOJ_on || function () { return true; };
   window.KCFOJ_style(
     '.kc-seal-flag{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);padding:3px 8px 3px calc(8px + .2em);white-space:nowrap;background:var(--kc-accent);border:1px solid var(--kc-gold);color:var(--kc-card);font:500 8.5px/1.25 var(--kc-mono);letter-spacing:.2em;text-transform:uppercase;box-shadow:0 4px 10px -4px rgba(20,12,10,.5)}\n' +
@@ -2897,7 +2897,7 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
    ready within 2.6 seconds of coming near the screen is shown as Square's grid
    and stays that way. If Square later redraws the plates inside a spread, the
    spread is rebuilt before the next frame, or Square's grid comes back. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var D = document, on = window.KCFOJ_on || function () { return true; };
   var mark = window.KCFOJ_mark, unmark = window.KCFOJ_unmark, has = window.KCFOJ_has, self = window.KCFOJ_self;
   var still = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -3119,7 +3119,7 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
    never events, products, memberships, donations or anything in the shop.
    A small snail lives here too; medieval scribes drew them in the margins.
    Tap it. */
-(function () {
+(function () { if (window.KCFOJ_SKIP) return;
   var D = document, R = D.documentElement, W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
   var css = `
 .kc-colophon{position:relative;box-sizing:border-box;width:100%;padding:30px clamp(16px,4vw,48px) 36px;background-color:var(--kc-cream);background-image:var(--kc-grain);background-size:240px 240px;border-top:1px solid var(--kc-rubric-rule);text-align:center}
@@ -3211,3 +3211,5 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
   };
 })();
 
+// end of kcfoj-polish v3.1.1
+// (padding: losing these last lines in a copy and paste does no harm)
