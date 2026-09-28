@@ -37,6 +37,9 @@
      KCFOJ_margin()        where each margin note went and why
      KCFOJ.replayIntro()   plays the arrival veil and banner again
    Add #kcdebug to a page address to see how the band under the banner was placed. */
+if (!window.KCFOJ_RUNNING) {
+window.KCFOJ_RUNNING = true;
+
 
 /* ===== Part 0: words and switches you can edit ===== */
 window.KCFOJ_WORDS = {
@@ -3207,3 +3210,5 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
     try { colophon(); } catch (e) { if (window.console) console.warn('KCFOJ colophon:', e); }
   };
 })();
+
+}
