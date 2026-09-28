@@ -1,6 +1,7 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.1, cumulative)
-   Loaded on every page by one short script tag in Square's Tracking tools.
-   Changes go live once GitHub Pages redeploys; no Square republish needed.
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.1, stabilization)
+   Loaded on every page from Square's Tracking tools, after a small boot block
+   (see the Header code snippet that ships with this file). Changes go live once
+   GitHub Pages redeploys; no Square republish needed.
 
    The idea: a living Jungian commonplace book with the visual soul of the
    Red Book. The Commonplace Book is the architecture (vellum, type, rubrics,
@@ -8,9 +9,17 @@
    leather); the v2.6 layer is the atmosphere (the arrival, the breathing
    banner, the drifting words, the candle in the dark).
 
+   How it stays steady on Square (new in 3.1.1): the boot block in Header code
+   paints the page vellum and holds it until this script has finished styling
+   Square's page. Every mark this script puts on Square's own elements lives in
+   data-kc attributes, which Square's re-renders leave alone; anything Square
+   adds or restyles is repainted before the browser draws the next frame, with
+   Square's own color transitions held off for that instant; and a plate
+   gallery is only ever seen in its final state.
+
    Part 0   Words and switches you can edit, plus shared helpers
    Part 1   Type, color and paper, plus pinch zoom on phones
-   Part 2   Finds Square's buttons, cards, plates and footer (one observer, incremental)
+   Part 2   Paints Square's page before each frame; one observer, incremental
    Part 3   The book layer: arrival veil, banner, word band and index line, reveals,
             card and plate tilt, plate viewer, night page
    Part 4   Illuminated initials, chapter numerals, rubric ornaments
@@ -19,13 +28,13 @@
    Part 7   Manuscript layouts for About (epigraph, timeline, vocabulary)
    Part 8   Night page quote rotation
    Part 9   The Living Margin: glosses on Jung's terms
-   Part 10  "Tonight" ribbon on the date seals
+   Part 10  Today / Tonight / Tomorrow ribbon on the date seals
    Part 11  Plates as a manuscript spread
    Part 12  Colophon, Open at random, and the snail
 
    Troubleshooting, in the browser console:
+     KCFOJ.stats()         how often the page was repainted and re-checked, and how long it took
      KCFOJ_margin()        where each margin note went and why
-     KCFOJ.stats()         how often the page was re-checked, and how long it took
      KCFOJ.replayIntro()   plays the arrival veil and banner again
    Add #kcdebug to a page address to see how the band under the banner was placed. */
 
@@ -54,16 +63,17 @@ window.KCFOJ_WORDS = {
     mandalaNav: true,        // back to top: a mandala drawn inside the ink ring (false: plain ink ring)
     footerMandala: true,     // the footer's mandala, faint under the vellum and leather edge
     dateSeals: true,         // date seals on event photos
-    tonightRibbon: true,     // Today / Tonight / Tomorrow on the seals
+    tonightRibbon: true,     // Today / Tonight / Tomorrow on the seals, only when the year is certain
     quoteRotation: true,     // a different night-page quote on later visits
     colophon: true,          // the strip under the footer, with Open at random
     drollerie: true          // the snail in the colophon
   },
   corners: 2,                              // button and card corners in px (v2.6 used 8)
   name: 'Kansas City Friends of Jung',
-  since: 'the late 1980s',                 // colophon; put the founding year here once confirmed
+  since: 'the late 1980s',                 // colophon. STILL A PLACEHOLDER: confirm the founding year, then put it here (e.g. '1988')
   begin: { lead: 'New to Jung, or to us?', link: 'Begin here', url: '/about' }, // point url at a Begin Here page once it exists
   lexiconUrl: '',                          // e.g. '/lexicon' once that page exists; notes then link to it
+  randomPages: /^\/s\/stories\/[^\/]+$/,   // which pages "Open the book at random" may choose (stories only)
   index: ['Dreams', 'Shadow', 'Archetypes', 'Individuation', 'The Self', 'Symbol', 'Anima', 'Myth'], // index line and word band
   glossMax: 8,                             // the most terms glossed on one page
   quote: 'Who looks outside, dreams; who looks inside, awakes.',
@@ -166,6 +176,60 @@ window.KCFOJ_WORDS = {
     return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
   };
 
+  // Marks on Square's own elements are words in data attributes (data-kc="cream grain"),
+  // never classes: Square rewrites class attributes when it re-renders, but leaves these alone.
+  function words(el, attr) { return ' ' + (el.getAttribute(attr) || '') + ' '; }
+  window.KCFOJ_has = function (el, w, attr) { return !!el && el.nodeType === 1 && words(el, attr || 'data-kc').indexOf(' ' + w + ' ') > -1; };
+  window.KCFOJ_mark = function (el, w, attr) {
+    attr = attr || 'data-kc';
+    var v = el.getAttribute(attr) || '';
+    if ((' ' + v + ' ').indexOf(' ' + w + ' ') > -1) return false;
+    el.setAttribute(attr, v ? v + ' ' + w : w);
+    return true;
+  };
+  window.KCFOJ_unmark = function (el, w, attr) {
+    attr = attr || 'data-kc';
+    var v = el.getAttribute(attr);
+    if (v === null) return;
+    var n = (' ' + v + ' ').replace(' ' + w + ' ', ' ').trim();
+    if (n === v) return;
+    if (n) el.setAttribute(attr, n); else el.removeAttribute(attr);
+  };
+
+  // Square elements whose inline style this script writes (tilt, folio pages and the like);
+  // the observer in Part 2 ignores those style changes, so they never loop back
+  var self = window.WeakSet ? new WeakSet() : { add: function () {}, has: function () { return false; } };
+  window.KCFOJ_self = self;
+
+  // Every style sheet this script adds is registered, so Part 2 can put one back at once
+  // if anything ever removes it
+  var sheets = window.KCFOJ_sheets = [];
+  window.KCFOJ_style = function (css, id) {
+    var t = document.createElement('style');
+    t.setAttribute('data-kc-style', id || '');
+    t.textContent = css;
+    (document.head || document.documentElement).appendChild(t);
+    sheets.push(t);
+    return t;
+  };
+  // Rules made on the fly for one element's own values (a footer image, a plate ratio)
+  var dyn = null, seenRule = {};
+  window.KCFOJ_rule = function (sel, decl) {
+    var key = sel + '{' + decl + '}';
+    if (seenRule[key]) return;
+    seenRule[key] = 1;
+    if (!dyn) dyn = window.KCFOJ_style('', 'dyn');
+    dyn.textContent += key + '\n';
+  };
+
+  // Square's cart, checkout and account pages get colors only: no reveals, glosses or tilt
+  window.KCFOJ_commerce = function () {
+    return /(^|\/)(cart|checkout|order|orders|account|login|sign-?in|payment)(\/|$)/i.test(location.pathname);
+  };
+  // Pop-ups and dialogs (Square's newsletter pop-up among them) get the page's colors and nothing
+  // else: no reveals, glosses, initials or held galleries. This script never hides, delays or moves them.
+  window.KCFOJ_DIALOGS = '[role="dialog"], [aria-modal="true"], dialog, [class*="popup" i], [class*="modal" i]';
+
   // The mandala line drawing shared by the arrival veil, the back-to-top device and
   // the night page: two outer rings, twelve petals, an inner ring, eight seeds, a star, a heart.
   window.KCFOJ_mandala = function () {
@@ -196,22 +260,38 @@ window.KCFOJ_WORDS = {
     requestAnimationFrame(function () { rq = false; fire(B.resize); });
   }, { passive: true });
   document.addEventListener('keydown', function (e) { fire(B.key, e); }, true);
+  // Called after each round of heavier work (Part 2), for parts that need to know
+  window.KCFOJ_after = [];
 })();
 
-/* ===== Parts 1 and 2: type, color and paper; finding Square's pieces =====
-   Part 1 is the CSS. Part 2 finds your buttons, cards, plates and footer by
-   their current colors and tags them, since Square doesn't publish stable
-   class names. It watches the page with one MutationObserver and only
-   re-checks what Square has just added, with a full sweep after loading,
-   after a page change, on resize and once after the first scroll. */
+/* ===== Parts 1 and 2: type, color and paper; painting Square's page =====
+   Part 1 is the CSS. Part 2 finds Square's gray and white grounds, header,
+   buttons, cards, plates and footer by their colors and marks them with
+   data-kc words, since Square doesn't publish stable class names.
+
+   How it keeps the page steady:
+   - Colors are repainted synchronously, inside the observer, so a section,
+     header or button Square has just added or restyled is already vellum and
+     rubric when the browser draws it. Nothing waits on a timer. Square's own
+     color transitions are held off for that instant, so nothing fades across.
+     Late style sheets, Square's theme changes on <html>, blocks that grow into
+     sections and elements Square animates are all caught before their frame.
+   - The marks live in data-kc attributes. Square rewrites class attributes
+     when it re-renders; it leaves these alone, so nothing falls back.
+   - Heavier work (cards, plates, footer, and every feature in Parts 3 to 12)
+     runs once per frame at most, just before the frame is drawn.
+   - The observer ignores its own writes, cools off any element Square is
+     animating, and never rescans the whole page for a small change. */
 (function () {
   var W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
-  var R = Math.max(0, Math.min(24, +W.corners === +W.corners ? +W.corners : 2));
+  var mark = window.KCFOJ_mark, has = window.KCFOJ_has, self = window.KCFOJ_self;
+  var RAD = Math.max(0, Math.min(24, +W.corners === +W.corners ? +W.corners : 2));
   var GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .23 0 0 0 0 .15 .13 0 0 0 -.03'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E\")";
   var LEATHER = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='l' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .84 0 0 0 0 .74 .12 0 0 0 -.04'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23l)'/%3E%3C/svg%3E\")";
   // The manicule, a printer's pointing hand
   var HAND = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 20'%3E%3Cpath d='M1 4.6H5.6V15.4H1Z M6.8 5.4C9.2 4.6 12.2 4.1 15.4 4.3L29 5.7C30.9 5.9 30.9 8.9 29 9.1L18.6 9.3C21 9.5 21.2 12.3 18.7 12.6C20.9 13 20.9 15.5 18.5 15.7C20 16.2 19.6 18.3 17.3 18.3L12 18.1C9.9 18 8.3 17.2 6.8 15.9Z'/%3E%3C/svg%3E\")";
   var RULE = 'linear-gradient(rgba(0,0,0,.24),rgba(0,0,0,.24))', BAND = 'linear-gradient(var(--kc-accent),var(--kc-accent))', WASH = 'linear-gradient(rgba(244,237,225,.88),rgba(244,237,225,.88))';
+  var BTN = '[data-kc~="btn"]', OUT = '[data-kc~="outline"]';
 
   var css = `
 :root{
@@ -224,7 +304,7 @@ window.KCFOJ_WORDS = {
   --kc-ui:'Libre Franklin',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --kc-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --kc-versal:'UnifrakturMaguntia','Newsreader',Georgia,serif;
-  --kc-radius:${R}px; --kc-ease:cubic-bezier(.22,.61,.36,1); --kc-e:cubic-bezier(.2,.7,.2,1);
+  --kc-radius:${RAD}px; --kc-ease:cubic-bezier(.22,.61,.36,1); --kc-e:cubic-bezier(.2,.7,.2,1);
   --kc-shadow:0 1px 0 rgba(31,26,23,.05),0 16px 32px -22px rgba(31,26,23,.45);
   --kc-lift:0 1px 0 rgba(31,26,23,.05),0 26px 46px -24px rgba(31,26,23,.52);
   --kc-grain:${GRAIN}; --kc-leather:${LEATHER}; --kc-hand:${HAND};
@@ -244,70 +324,76 @@ p{line-height:1.68!important;text-wrap:pretty}
 a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--kc-accent)!important;outline-offset:3px}
 
 /* Vellum instead of gray or white, with a faint paper grain; a calm header */
-.kc-cream{background-color:var(--kc-cream)!important}
-.kc-grain{background-image:var(--kc-grain)!important;background-size:240px 240px!important;background-repeat:repeat!important}
-.kc-header{background-color:var(--kc-cream)!important;border-bottom:1px solid var(--kc-rubric-rule)!important;box-shadow:none!important}
+[data-kc~="cream"]{background-color:var(--kc-cream)!important}
+[data-kc~="grain"]{background-image:var(--kc-grain)!important;background-size:240px 240px!important;background-repeat:repeat!important}
+[data-kc~="header"]{background-color:var(--kc-cream)!important;border-bottom:1px solid var(--kc-rubric-rule)!important;box-shadow:none!important}
+[data-kc~="rel"]{position:relative!important}
+/* Held for an instant while a color is repainted, so Square's own transitions never show a fade */
+[data-kc-now],[data-kc-now="deep"] *{transition:none!important}
 
 /* Buttons: one rubric red, set like a printed label: a fine inner rule at rest,
-   and on hover the v2.6 lift and glow */
-.kc-btn{background-color:var(--kc-accent)!important;border-color:var(--kc-accent)!important;color:#FBF7F0!important;border-radius:var(--kc-radius)!important;font-family:var(--kc-ui)!important;letter-spacing:.05em!important;box-shadow:inset 0 0 0 1px rgba(251,247,240,.14),0 1px 0 rgba(31,26,23,.18)!important;transition:background-color .3s var(--kc-ease),box-shadow .3s var(--kc-ease),transform .3s var(--kc-ease)!important}
-.kc-btn-join{border-radius:0 var(--kc-radius) var(--kc-radius) 0!important}
-.kc-btn-outline{background-color:transparent!important;border-color:var(--kc-accent)!important;color:var(--kc-accent)!important;border-radius:var(--kc-radius)!important;font-family:var(--kc-ui)!important;letter-spacing:.05em!important;transition:background-color .3s var(--kc-ease),color .3s var(--kc-ease)!important}
-.kc-btn *,.kc-btn-outline *{color:inherit!important;font-family:inherit!important}
+   and on hover the v2.6 lift and glow. The color itself never transitions, so a
+   repaint can never be seen fading. */
+${BTN}{background-color:var(--kc-accent)!important;border-color:var(--kc-accent)!important;color:#FBF7F0!important;border-radius:var(--kc-radius)!important;font-family:var(--kc-ui)!important;letter-spacing:.05em!important;box-shadow:inset 0 0 0 1px rgba(251,247,240,.14),0 1px 0 rgba(31,26,23,.18)!important;transition:box-shadow .3s var(--kc-ease),transform .3s var(--kc-ease)!important}
+[data-kc~="join"]{border-radius:0 var(--kc-radius) var(--kc-radius) 0!important}
+${OUT}{background-color:transparent!important;border-color:var(--kc-accent)!important;color:var(--kc-accent)!important;border-radius:var(--kc-radius)!important;font-family:var(--kc-ui)!important;letter-spacing:.05em!important;transition:none!important}
+${BTN} *,${OUT} *{color:inherit!important;font-family:inherit!important}
 
 /* The manicule marks the next step: the banner's button, an event's main button,
    Begin Here, Open at random. On hover it leans toward what it points at. */
-.kc-hand::before{content:""!important;display:inline-block!important;position:static!important;inset:auto!important;transform:none!important;opacity:1!important;border:0!important;box-shadow:none!important;width:1.45em!important;height:.9em!important;margin:0 .55em 0 0!important;vertical-align:-.08em!important;background:currentColor!important;-webkit-mask:var(--kc-hand) center/contain no-repeat;mask:var(--kc-hand) center/contain no-repeat;transition:translate .35s var(--kc-e)}
+.kc-hand::before,[data-kc~="hand"]::before{content:""!important;display:inline-block!important;position:static!important;inset:auto!important;transform:none!important;opacity:1!important;border:0!important;box-shadow:none!important;width:1.45em!important;height:.9em!important;margin:0 .55em 0 0!important;vertical-align:-.08em!important;background:currentColor!important;-webkit-mask:var(--kc-hand) center/contain no-repeat;mask:var(--kc-hand) center/contain no-repeat;transition:translate .35s var(--kc-e)}
 
 /* Cards, date pills, plates (mounted inside a fine gold rule), video */
-.kc-card{border:1px solid var(--kc-rule)!important;border-radius:var(--kc-radius)!important;overflow:hidden!important;background-color:var(--kc-card)!important;box-shadow:var(--kc-shadow)!important;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
-.kc-pill{background-color:rgba(139,42,36,.08)!important;color:var(--kc-accent)!important;font-family:var(--kc-mono)!important;letter-spacing:.08em!important;border-radius:1px!important}
-.kc-tile{border-radius:var(--kc-radius)!important;box-shadow:var(--kc-shadow)!important;outline:1px solid rgba(168,132,79,.38);outline-offset:-7px;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
+[data-kc~="card"]{border:1px solid var(--kc-rule)!important;border-radius:var(--kc-radius)!important;overflow:hidden!important;background-color:var(--kc-card)!important;box-shadow:var(--kc-shadow)!important;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
+[data-kc~="pill"]{background-color:rgba(139,42,36,.08)!important;color:var(--kc-accent)!important;font-family:var(--kc-mono)!important;letter-spacing:.08em!important;border-radius:1px!important}
+[data-kc~="tile"]{border-radius:var(--kc-radius)!important;box-shadow:var(--kc-shadow)!important;outline:1px solid rgba(168,132,79,.38);outline-offset:-7px;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
 iframe[src*="youtube"],iframe[src*="vimeo"]{border-radius:var(--kc-radius)!important;box-shadow:var(--kc-shadow)!important}
+
+/* A plate gallery waits out of sight (its space kept) while it becomes a folio spread.
+   Part 2 lets it go after 2.6 seconds at most, shown as Square made it. Everything inside
+   is hidden too, so nothing Square marks visible can show through. */
+[data-kc-hold="1"],[data-kc-hold="1"] *{visibility:hidden!important}
 
 /* Form fields (16px on phones so iOS doesn't zoom in on focus) */
 input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),textarea,select{border-color:rgba(31,26,23,.28)!important;color:var(--kc-ink)!important;transition:border-color .25s,box-shadow .25s!important}
 input::placeholder,textarea::placeholder{color:rgba(31,26,23,.62)!important}
 input:focus,textarea:focus,select:focus{outline:none!important;border-color:var(--kc-accent)!important;box-shadow:0 0 0 3px rgba(139,42,36,.16)!important}
-@media (max-width:760px){input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),textarea,select{font-size:max(16px,1em)!important}}
+@media (max-width:760px),(hover:none) and (pointer:coarse){input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),textarea,select{font-size:max(16px,1em)!important}}
 
 /* Nav: spaced capitals with a rubric underline that fades in on hover */
-nav a:not(.kc-btn):not(.kc-btn-outline){font-family:var(--kc-ui)!important;text-transform:uppercase;letter-spacing:.14em!important;font-size:.86em;text-decoration:underline!important;text-decoration-color:transparent!important;text-decoration-thickness:1px!important;text-underline-offset:.5em;transition:text-decoration-color .3s,color .3s}
+nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:uppercase;letter-spacing:.14em!important;font-size:.86em;text-decoration:underline!important;text-decoration-color:transparent!important;text-decoration-thickness:1px!important;text-underline-offset:.5em;transition:text-decoration-color .3s,color .3s}
 
 /* Links inside body text */
-.kc-prose a:not(.kc-btn):not(.kc-btn-outline){color:var(--kc-accent)!important;text-decoration:underline!important;text-decoration-color:rgba(139,42,36,.4)!important;text-decoration-thickness:1px!important;text-underline-offset:.2em}
+[data-kc~="prose"] a:not(${BTN}):not(${OUT}){color:var(--kc-accent)!important;text-decoration:underline!important;text-decoration-color:rgba(139,42,36,.4)!important;text-decoration-thickness:1px!important;text-underline-offset:.2em}
 
 /* Footer, like the back board of a bound book: a leather edge with two blind-stamped
    rules, vellum with grain, and the footer's own mandala faint beneath the vellum */
-.kc-footer-bg,.kc-footer-solid{background-color:var(--kc-cream)!important;background-image:${RULE},${RULE},${BAND},var(--kc-grain)!important;background-size:100% 1px,100% 1px,100% 12px,240px 240px!important;background-position:0 3px,0 8px,0 0,0 0!important;background-repeat:no-repeat,no-repeat,no-repeat,repeat!important;box-shadow:none!important}
-.kc-footer-bg.kc-mandala{background-image:${RULE},${RULE},${BAND},var(--kc-grain),${WASH},var(--kc-mandala)!important;background-size:100% 1px,100% 1px,100% 12px,240px 240px,100% 100%,var(--kc-mandala-size,cover)!important;background-position:0 3px,0 8px,0 0,0 0,0 0,var(--kc-mandala-pos,50% 50%)!important;background-repeat:no-repeat,no-repeat,no-repeat,repeat,no-repeat,var(--kc-mandala-repeat,no-repeat)!important}
-.kc-footer-img{opacity:0!important}
-.kc-footer-img.kc-mandala{opacity:.1!important}
-.kc-footer :is(p,a,span,li,div,small,label,h1,h2,h3,h4,h5,h6):not(.kc-btn,.kc-btn-outline,.kc-btn *,.kc-btn-outline *){color:var(--kc-ink)!important;text-shadow:none!important}
+[data-kc~="footbg"],[data-kc~="footsolid"]{background-color:var(--kc-cream)!important;background-image:${RULE},${RULE},${BAND},var(--kc-grain)!important;background-size:100% 1px,100% 1px,100% 12px,240px 240px!important;background-position:0 3px,0 8px,0 0,0 0!important;background-repeat:no-repeat,no-repeat,no-repeat,repeat!important;box-shadow:none!important}
+[data-kc~="footbg"][data-kc~="mandala"]{background-image:${RULE},${RULE},${BAND},var(--kc-grain),${WASH},var(--kc-mandala)!important;background-size:100% 1px,100% 1px,100% 12px,240px 240px,100% 100%,var(--kc-mandala-size,cover)!important;background-position:0 3px,0 8px,0 0,0 0,0 0,var(--kc-mandala-pos,50% 50%)!important;background-repeat:no-repeat,no-repeat,no-repeat,repeat,no-repeat,var(--kc-mandala-repeat,no-repeat)!important}
+[data-kc~="footimg"]{opacity:0!important}
+[data-kc~="footimg"][data-kc~="mandala"]{opacity:.1!important}
+[data-kc~="footer"] :is(p,a,span,li,div,small,label,h1,h2,h3,h4,h5,h6):not(${BTN},${OUT},${BTN} *,${OUT} *){color:var(--kc-ink)!important;text-shadow:none!important}
 
 /* Hides the payment icons in the footer. Delete this line to keep them. */
-.kc-hide{display:none!important}
+[data-kc~="hide"]{display:none!important}
 
 /* Hover effects, mouse only so phones don't get stuck mid-hover */
 @media (hover:hover){
-  .kc-btn:not([disabled]):hover{background-color:var(--kc-accent-deep)!important;border-color:var(--kc-accent-deep)!important;transform:translateY(-1px);box-shadow:inset 0 0 0 1px rgba(251,247,240,.18),0 10px 22px -10px rgba(139,42,36,.6)!important}
-  .kc-hand:hover::before,a:hover>.kc-hand::before,.kc-begin:hover .kc-hand::before{translate:3px 0}
-  .kc-btn-outline:hover{background-color:var(--kc-accent)!important;color:#FBF7F0!important}
-  .kc-card:hover,.kc-tile:hover{transform:translateY(-4px);box-shadow:var(--kc-lift)!important}
-  nav a:not(.kc-btn):not(.kc-btn-outline):hover{text-decoration-color:var(--kc-accent)!important}
-  .kc-prose a:not(.kc-btn):not(.kc-btn-outline):hover{text-decoration-color:currentColor!important}
-  .kc-footer a:not(.kc-btn,.kc-btn-outline):hover,.kc-footer a:not(.kc-btn,.kc-btn-outline):hover *{color:var(--kc-accent)!important}
+  ${BTN}:not([disabled]):hover{background-color:var(--kc-accent-deep)!important;border-color:var(--kc-accent-deep)!important;transform:translateY(-1px);box-shadow:inset 0 0 0 1px rgba(251,247,240,.18),0 10px 22px -10px rgba(139,42,36,.6)!important}
+  .kc-hand:hover::before,[data-kc~="hand"]:hover::before,a:hover>.kc-hand::before,.kc-begin:hover .kc-hand::before{translate:3px 0}
+  ${OUT}:hover{background-color:var(--kc-accent)!important;color:#FBF7F0!important}
+  [data-kc~="card"]:hover,[data-kc~="tile"]:hover{transform:translateY(-4px);box-shadow:var(--kc-lift)!important}
+  nav a:not(${BTN}):not(${OUT}):hover{text-decoration-color:var(--kc-accent)!important}
+  [data-kc~="prose"] a:not(${BTN}):not(${OUT}):hover{text-decoration-color:currentColor!important}
+  [data-kc~="footer"] a:not(${BTN},${OUT}):hover,[data-kc~="footer"] a:not(${BTN},${OUT}):hover *{color:var(--kc-accent)!important}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
-@media print{.kc-compass,.kc-margin,.kc-def,.kc-band,.kc-snail,.kc-veil,.kc-aurora{display:none!important}}
+@media print{.kc-compass,.kc-margin,.kc-def,.kc-band,.kc-snail,.kc-veil,.kc-atmos{display:none!important}[data-kc-hold],[data-kc-hold] *{visibility:visible!important}}
 `;
+  window.KCFOJ_style(css, 'core');
 
-  var tag = document.createElement('style');
-  tag.textContent = css;
-  (document.head || document.documentElement).appendChild(tag);
-
-  // Newsreader for reading, IBM Plex Mono for dates and labels. For a faster first paint,
-  // paste the same stylesheet link into Square's header code as well; this then skips itself.
+  // Newsreader for reading, IBM Plex Mono for dates and labels. The Header code snippet
+  // already asks for them early; this only adds the link when that snippet is missing.
   function fonts() {
     var h = document.head || document.documentElement;
     if (document.getElementById('kc-fonts') || document.querySelector('link[href*="family=Newsreader"]')) return;
@@ -332,7 +418,9 @@ nav a:not(.kc-btn):not(.kc-btn-outline){font-family:var(--kc-ui)!important;text-
   fonts();
   zoomable();
 
+  var D = document, R = D.documentElement;
   var GRAY = '#C3C2BE', PEACH = '#EBA371', TEALS = ['#006678', '#2A6476', '#8B2A24'], PILL = '#F1F1F1';
+  var now = window.performance ? function () { return performance.now(); } : function () { return Date.now(); };
 
   function rgb(v) {
     var m = v && v.match(/rgba?\(([^)]+)\)/);
@@ -358,234 +446,630 @@ nav a:not(.kc-btn):not(.kc-btn-outline){font-family:var(--kc-ui)!important;text-
       return parseFloat(s['border' + d + 'Width']) >= 1 && s['border' + d + 'Style'] !== 'none';
     });
   }
-  function vellum(el, s) {
-    el.classList.add('kc-cream');
-    if (s.backgroundImage === 'none') el.classList.add('kc-grain');
-  }
-  // True for elements this script created (the band, notes, seals, viewer, and so on)
-  var MADE = /(^|\s)kc-(band|frieze|veil|atmos|aurora|vignette|margin|note|def|lb|compass|seal|colophon|shadow|lantern|night-art|folio-no|folio-btn|gloss|key|lex-term|tl-year)/;
-  function ours(n) {
+  // Elements this script created, and anything inside them
+  var MADE = /(^|\s)kc-(band|frieze|veil|atmos|aurora|vignette|margin|note|def|lb|compass|seal|colophon|shadow|lantern|night-art|folio-no|folio-btn|gloss|key|lex-term|tl-year)(\s|$)/;
+  var OURS = '.kc-band, .kc-veil, .kc-atmos, .kc-margin, .kc-def, .kc-lb, .kc-compass, .kc-seal, .kc-colophon, .kc-shadow, .kc-folio-btn, .kc-folio-no, .kc-gloss, #kc-diag';
+  function made(n) {
     if (!n || n.nodeType !== 1) return false;
-    if (/^(STYLE|LINK|SCRIPT)$/.test(n.tagName)) return true;
     return MADE.test(n.getAttribute('class') || '') || /^kc-/.test(n.id || '');
   }
+  function inOurs(el) { try { return !!el.closest(OURS); } catch (e) { return false; } }
+  var PAINTED = /(^| )(cream|header|btn|outline)( |$)/;
+  function painted(el) { var v = el.getAttribute('data-kc'); return !!v && PAINTED.test(v); }
 
+  var stats = window.KCFOJ_stats = {
+    runs: 0, repaints: 0, observerCalls: 0, records: 0, styleChanges: 0, fullSweeps: 0, heavyPasses: 0,
+    paintMs: 0, paintMaxMs: 0, heavyMs: 0, heavyMaxMs: 0, hot: 0, holds: 0, leftAsGrid: 0, sheetsPutBack: 0, lastMs: 0
+  };
+
+  // ----- Immediate paint: colors only, read everything first, then write -----
+  // While Square's own transition is carrying a background somewhere, judge where it is going
+  function bgGoal(el, s) {
+    var v = s.backgroundColor;
+    if (!el.getAnimations || !/[1-9]/.test(s.transitionDuration || '')) return v;
+    try {
+      var an = el.getAnimations();
+      for (var i = 0; i < an.length; i++) {
+        if (an[i].transitionProperty !== 'background-color') continue;
+        var k = an[i].effect.getKeyframes(), last = k[k.length - 1];
+        if (last && last.backgroundColor) v = last.backgroundColor;
+      }
+    } catch (e) {}
+    return v;
+  }
+  // Does Square animate this element's colors? Then a repaint holds its transitions off for an instant
+  function fades(s) {
+    var p = String(s.transitionProperty || '').split(','), d = String(s.transitionDuration || '').split(',');
+    for (var i = 0; i < p.length; i++) {
+      if ((parseFloat(d[i % d.length]) || 0) > 0 && /^\s*(all|background|border|color|box-shadow|outline)/.test(p[i])) return true;
+    }
+    return false;
+  }
+  // A full-width white block too short to count as a section yet is watched, and painted the
+  // moment it grows (before that frame is drawn), whatever made it grow
+  var thinRO = window.ResizeObserver ? new ResizeObserver(function (ents) {
+    var l = [];
+    for (var i = 0; i < ents.length; i++) {
+      var t = ents[i].target;
+      if (!t.isConnected || painted(t)) { thinRO.unobserve(t); t._kcThin = 0; continue; }
+      l.push(t);
+    }
+    if (l.length) paint(l);
+  }) : null;
+  function thinWatch(el) { if (thinRO && !el._kcThin) { el._kcThin = 1; thinRO.observe(el); } }
+  function judgeColor(el, vw, sy) {
+    if (painted(el) || made(el) || el.namespaceURI === 'http://www.w3.org/2000/svg' || /^(SCRIPT|STYLE|LINK|META|HEAD|TITLE|NOSCRIPT|TEMPLATE|BR)$/.test(el.tagName)) return null;
+    var s = st(el), c = rgb(bgGoal(el, s));
+    if (!c || c.a < 0.9) return null;
+    var grain = s.backgroundImage === 'none';
+    if (near(c, GRAY, 6)) return inOurs(el) ? null : (grain ? 'cream grain' : 'cream');
+    if (near(c, PEACH, 8)) {
+      var r = rect(el);
+      if ((r.top + sy < 220 || /fixed|sticky/.test(s.position)) && r.width > vw * 0.9) return grain ? 'header grain' : 'header';
+      return null;
+    }
+    if (paper(c)) {
+      if (el === R || el === D.body) return grain ? 'cream grain' : 'cream';
+      if (within(el, 'footer, form, a, button, [data-kc~="card"], [data-kc-zone], ' + OURS)) return null;
+      var r2 = rect(el);
+      if (r2.width >= vw - 4 && r2.height < 100) thinWatch(el);
+      return r2.width >= vw - 4 && r2.height >= 100 ? (grain ? 'cream grain' : 'cream') : null;
+    }
+    if (TEALS.some(function (t) { return near(c, t, 10); }) && (within(el, 'a, button, [role="button"]') || el.matches('input[type="submit"]'))) {
+      var r3 = rect(el);
+      if (r3.width >= 60 && r3.height < 120 && text(el).length > 2) {
+        return parseFloat(s.borderTopLeftRadius) === 0 && parseFloat(s.borderTopRightRadius) > 0 ? 'btn join' : 'btn';
+      }
+    }
+    return null;
+  }
+  // Outlined buttons (like the one in the header), judged after the filled ones are marked
+  function judgeOutline(el) {
+    if (painted(el) || !el.matches('a, button, [role="button"]') || el.classList.contains('kc-gloss') || inOurs(el) || el.querySelector(BTN)) return null;
+    var s = st(el), c = rgb(s.backgroundColor), bc = rgb(s.borderTopColor);
+    if ((!c || c.a === 0 || (c.r > 200 && c.g > 200 && c.b > 200)) && framed(s) && bc && bc.a > 0 && text(el).length > 2 && rect(el).width >= 60) return 'outline';
+    return null;
+  }
+  // Color marks go on with transitions held off for that instant, then the colors are applied
+  // at once and the hold is let go: the change is never animated from Square's color to ours
+  var nowList = [];
+  // deep: the mark recolors text inside the element too (buttons, the footer, links in body text)
+  function markNow(el, w, hold, deep) {
+    if (has(el, w)) return;
+    if (deep) hold = true;
+    else if (hold === undefined) hold = fades(st(el));
+    if (hold && el.getAttribute('data-kc-now') !== 'deep') {
+      if (!el.hasAttribute('data-kc-now')) nowList.push(el);
+      el.setAttribute('data-kc-now', deep ? 'deep' : '');
+    }
+    mark(el, w);
+  }
+  window.KCFOJ_markNow = function (el, w, deep) { markNow(el, w, undefined, deep); };
+  window.KCFOJ_settle = function () { settle(); };
+  function settle() {
+    if (!nowList.length) return;
+    var i, l = nowList;
+    nowList = [];
+    for (i = 0; i < l.length; i++) void getComputedStyle(l[i]).backgroundColor;
+    for (i = 0; i < l.length; i++) l[i].removeAttribute('data-kc-now');
+  }
+  // plan: element, words, whether Square animates its colors (read before any writing)
+  function apply(plan) {
+    for (var i = 0; i < plan.length; i += 3) plan[i + 1].split(' ').forEach(function (w) { markNow(plan[i], w, plan[i + 2], w === 'btn' || w === 'outline'); });
+  }
+  function paint(list) {
+    try { return paintNow(list); } finally { settle(); }
+  }
+  function paintNow(list) {
+    var t0 = now(), vw = window.innerWidth, sy = window.pageYOffset, plan = [], i, el, w;
+    for (i = 0; i < list.length; i++) {
+      el = list[i];
+      if (el.nodeType !== 1 || !el.isConnected) continue;
+      if ((w = judgeColor(el, vw, sy))) plan.push(el, w, fades(st(el)));
+    }
+    apply(plan);
+    var n = plan.length / 3;
+    plan = [];
+    for (i = 0; i < list.length; i++) {
+      el = list[i];
+      if (el.nodeType !== 1 || !el.isConnected || !el.matches) continue;
+      if ((w = judgeOutline(el))) plan.push(el, w, fades(st(el)));
+    }
+    apply(plan);
+    n += plan.length / 3;
+    settle();
+    var ms = now() - t0;
+    stats.repaints += n; stats.paintMs += ms; if (ms > stats.paintMaxMs) stats.paintMaxMs = Math.round(ms * 10) / 10;
+    return n;
+  }
+  function everything() { return D.querySelectorAll('html, body, body *'); }
+  function expand(roots) {
+    var set = new Set(), i, j;
+    for (i = 0; i < roots.length; i++) {
+      var r = roots[i];
+      if (!r || r.nodeType !== 1 || !r.isConnected || set.has(r)) continue;
+      set.add(r);
+      var all = r.getElementsByTagName('*');
+      for (j = 0; j < all.length; j++) set.add(all[j]);
+    }
+    return Array.from(set);
+  }
+
+  // ----- Plate galleries are held out of sight the moment they appear (see Part 11) -----
+  function imgsIn(el) { return el.tagName === 'IMG' ? 1 : el.getElementsByTagName('img').length; }
+  // A plate carries at most one short caption. A picture with a heading, a form field, a text
+  // button or link, a link into the shop or events, a time or a price, or more than one piece
+  // of text is a card (an event, a product, a person), not a plate.
+  var SHOP = 'a[href*="/product/"], a[href*="/shop/"], a[href*="/events"], a[href*="/cart"]';
+  var INLINE = /^(EM|I|B|STRONG|SPAN|A|SMALL|SUP|SUB|ABBR|CITE|MARK|Q|TIME|U|S|CODE|BR|FONT)$/;   // formatting inside one caption
+  function plateLike(c) {
+    var txt = c.textContent.trim();
+    if (txt.length > 80 || c.querySelector('h1, h2, h3, h4, h5, h6, input, select, textarea')) return false;
+    if (c.matches(SHOP) || c.querySelector(SHOP) || within(c, SHOP)) return false;
+    if (/\d{1,2}:\d{2}|\d\s?[ap]\.?m\b|[$\u00a3\u20ac]\s?\d/i.test(txt)) return false;
+    var acts = c.querySelectorAll('a, button, [role="button"]'), i;
+    for (i = 0; i < acts.length; i++) if (!acts[i].getElementsByTagName('img').length && acts[i].textContent.trim()) return false;
+    if (txt) {
+      var holders = [], all = [c].concat([].slice.call(c.getElementsByTagName('*')));
+      for (i = 0; i < all.length; i++) {
+        for (var n = all[i].firstChild; n; n = n.nextSibling) {
+          if (n.nodeType !== 3 || !n.nodeValue.trim()) continue;
+          var h = all[i];
+          while (h !== c && INLINE.test(h.tagName)) h = h.parentElement;
+          if (holders.indexOf(h) < 0) holders.push(h);
+          break;
+        }
+        if (holders.length > 1) return false;
+      }
+    }
+    return true;
+  }
+  // Only a grid: a slider or carousel is left alone. Its slides are not drawn at all, or sit
+  // beside the screen on a track, or are stacked on top of one another to fade.
+  function drawn(c) { return c.getClientRects().length > 0; }
+  function sliderLike(els) {
+    var vw = window.innerWidth, rs = els.map(rect);
+    for (var i = 0; i < rs.length; i++) {
+      var a = rs[i], b = rs[i - 1];
+      if (a.right <= 0 || a.left >= vw) return true;
+      if (b && a.height > 20 && b.height > 20) {
+        var ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (ox > 0 && oy > 0 && ox * oy > 0.5 * Math.min(a.width * a.height, b.width * b.height)) return true;
+      }
+    }
+    return false;
+  }
+  // True when every child holds exactly one plate (rows of plates are looked into once)
+  function galleryShape(box, n) {
+    var pages = [], kids = box.children, i, j;
+    for (i = 0; i < kids.length; i++) {
+      var c = kids[i], k = imgsIn(c);
+      if (c.tagName === 'IMG') return false;
+      if (k === 0) { if (c.textContent.trim()) return false; continue; }
+      if (k === 1) { if (!plateLike(c) || !drawn(c)) return false; pages.push(c); continue; }
+      for (j = 0; j < c.children.length; j++) {
+        var g = c.children[j], kg = imgsIn(g);
+        if (kg === 1 && g.tagName !== 'IMG') { if (!plateLike(g) || !drawn(g)) return false; pages.push(g); }
+        else if (kg > 1 || (kg === 0 && g.textContent.trim()) || g.tagName === 'IMG') return false;
+      }
+    }
+    return pages.length === n && !sliderLike(pages);
+  }
+  // A held gallery has 2.6 seconds to become a spread once it is near the screen. One further
+  // down the page waits out of sight until the reader comes within half a screen of it.
+  // Past that it is shown as Square made it, and stays that way.
+  function letGo(box) {
+    if (box.getAttribute('data-kc-hold') !== '1') return;
+    box.setAttribute('data-kc-folio-off', '1');
+    box.setAttribute('data-kc-hold', 'done');
+    stats.leftAsGrid++;
+  }
+  function startClock(box) {
+    if (box._kcClock) return;
+    box._kcClock = now();
+    setTimeout(function () { letGo(box); }, 2600);
+  }
+  var nearIO = 'IntersectionObserver' in window ? new IntersectionObserver(function (ents) {
+    for (var i = 0; i < ents.length; i++) {
+      if (!ents[i].isIntersecting) continue;
+      nearIO.unobserve(ents[i].target);
+      startClock(ents[i].target);
+    }
+  }, { rootMargin: '50% 0px 50% 0px' }) : null;
+  // Part 11 also calls this for any held gallery it finds, so a copy Square made of one is let go too
+  function watchHold(box) {
+    if (box._kcHeld) return;
+    box._kcHeld = true;
+    if (nearIO) nearIO.observe(box); else startClock(box);
+  }
+  window.KCFOJ_watchHold = watchHold;
+  // Is the boot block's vellum still over the page?
+  function coverUp() {
+    if (!R.classList.contains('kc-cover') || R.classList.contains('kc-uncover')) return false;
+    try { var c = getComputedStyle(R, '::after'); return c.content !== 'none' && c.visibility !== 'hidden' && +c.opacity > 0.5; } catch (e) { return false; }
+  }
+  function onScreen(el) { var r = rect(el); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight; }
+  // first: the first look, when Square may already have drawn the page
+  function holdGalleries(roots, first) {
+    if (!on('folioViewer') || window.KCFOJ_commerce()) return;
+    var seen = new Set();
+    for (var i = 0; i < roots.length; i++) {
+      var root = roots[i];
+      if (!root || root.nodeType !== 1 || !root.isConnected) continue;
+      var imgs = root.tagName === 'IMG' ? [root] : root.getElementsByTagName('img');
+      for (var j = 0; j < imgs.length; j++) {
+        var img = imgs[j];
+        if (within(img, 'header, footer, nav, [data-kc~="card"], [data-kc-hold], [data-kc-folio-off], [data-kc-f], ' + OURS + ', ' + window.KCFOJ_DIALOGS)) continue;
+        for (var a = img.parentElement, up = 0; a && a !== D.body && up < 7; a = a.parentElement, up++) {
+          if (seen.has(a)) break;
+          seen.add(a);
+          var n = a.getElementsByTagName('img').length;
+          if (n < 4) continue;
+          if (galleryShape(a, n)) {
+            // A gallery the visitor may already be looking at is never hidden or changed: it stays
+            // Square's grid (this happens only when this script arrives after the page is shown)
+            var old = first || !roots.some(function (r) { return r === a || (r.contains && r.contains(a)); });
+            if (old && onScreen(a) && !coverUp()) {
+              a.setAttribute('data-kc-folio-off', '1');
+              a.setAttribute('data-kc-hold', 'done');
+              stats.leftAsGrid++;
+            } else {
+              a.setAttribute('data-kc-hold', '1');
+              stats.holds++;
+              watchHold(a);
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // ----- Heavier work, at most once per frame, just before the frame is drawn -----
+  var heavyDirty = [], fullHeavy = true, lastPath = null, zone = null, foot = null, hq = 0, lastW = window.innerWidth;
   function findFooter(vw) {
-    var fs = document.querySelectorAll('footer'), i, n, hit = null;
+    var fs = D.querySelectorAll('footer'), i, n, hit = null;
     for (i = fs.length - 1; i >= 0; i--) if (rect(fs[i]).width >= vw * 0.9) return fs[i];
-    var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    var w = D.createTreeWalker(D.body, NodeFilter.SHOW_TEXT);
     while ((n = w.nextNode())) {
       var pe = n.parentElement;
       if (pe && !/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(pe.tagName) && !pe.closest('.kc-colophon') && n.nodeValue.indexOf('\u00A9') > -1) hit = pe;
     }
-    for (var el = hit; el && el !== document.body; el = el.parentElement) {
+    for (var el = hit; el && el !== D.body; el = el.parentElement) {
       var r = rect(el);
       if (r.width >= vw * 0.9 && r.height >= 250) return el;
     }
     return null;
   }
-  // The footer's own background picture, remembered before our paper goes over it
+  // The footer's own background picture, kept faint beneath our paper
+  var mandalaN = 0;
   function keepMandala(el, s) {
     if (!on('footerMandala')) return;
     var u = (s.backgroundImage.match(/url\((?:[^()]|\([^)]*\))*\)/) || [])[0];
     if (!u) return;
     var first = function (v) { return String(v || '').split(',')[0].trim(); };
-    el.style.setProperty('--kc-mandala', u);
-    el.style.setProperty('--kc-mandala-size', first(s.backgroundSize) || 'cover');
-    el.style.setProperty('--kc-mandala-pos', first(s.backgroundPosition) || '50% 50%');
-    el.style.setProperty('--kc-mandala-repeat', first(s.backgroundRepeat) || 'no-repeat');
-    el.classList.add('kc-mandala');
+    var id = el.getAttribute('data-kc-m') || String(++mandalaN);
+    el.setAttribute('data-kc-m', id);
+    window.KCFOJ_rule('[data-kc-m="' + id + '"]', '--kc-mandala:' + u + ';--kc-mandala-size:' + (first(s.backgroundSize) || 'cover') + ';--kc-mandala-pos:' + (first(s.backgroundPosition) || '50% 50%') + ';--kc-mandala-repeat:' + (first(s.backgroundRepeat) || 'no-repeat'));
+    mark(el, 'mandala');
   }
-
-  var OURS = '.kc-band, .kc-shadow, .kc-lb, .kc-def, .kc-margin, .kc-colophon, .kc-compass, .kc-veil';
-  var dirty = [], full = true, lastPath = null, zone = null, foot = null, scrolled = false;
-  var stats = window.KCFOJ_stats = { runs: 0, sweeps: 0, checked: 0, ms: 0, lastMs: 0 };
-  function expand(roots) {
-    var set = new Set(), i, j;
-    for (i = 0; i < roots.length; i++) {
-      var r = roots[i];
-      if (!r || !r.isConnected || set.has(r)) continue;
-      set.add(r);
-      var all = r.querySelectorAll('*');
-      for (j = 0; j < all.length; j++) set.add(all[j]);
-    }
-    return Array.from(set);
-  }
-  function later() {
-    // Square keeps styling things for a moment after a page appears; look again shortly
-    setTimeout(function () { full = true; schedule(); }, 1200);
-    setTimeout(function () { full = true; schedule(); }, 3500);
-  }
-
-  function run() {
-    if (!document.body) return;
-    var t0 = window.performance ? performance.now() : 0, i, el, s, c, r, sweep = false;
-    zoomable();
-    if (location.pathname !== lastPath) { lastPath = location.pathname; full = true; zone = null; foot = null; scrolled = false; later(); }
-    var vw = window.innerWidth, all;
-    if (full) { all = document.querySelectorAll('html, body, body *'); full = false; sweep = true; stats.sweeps++; }
-    else all = expand(dirty);
-    dirty = [];
-    stats.checked += all.length;
-
-    // 1. Colors: gray, white and old cream grounds to vellum, peach header to vellum, teals to rubric red
-    for (i = 0; i < all.length; i++) {
-      el = all[i];
-      if (el.classList.contains('kc-cream') || ours(el)) continue;
-      s = st(el); c = rgb(s.backgroundColor);
-      if (!c || c.a < 0.9) continue;
-      if (near(c, GRAY, 6)) { if (!within(el, OURS)) vellum(el, s); continue; }
-      if (near(c, PEACH, 8)) {
-        r = rect(el);
-        if (r.top + window.scrollY < 220 || /fixed|sticky/.test(s.position)) {
-          if (r.width > vw * 0.9) { el.classList.add('kc-header'); if (s.backgroundImage === 'none') el.classList.add('kc-grain'); }
-        }
-        continue;
-      }
-      if (paper(c)) {
-        if (el === document.documentElement || el === document.body) { vellum(el, s); continue; }
-        r = rect(el);
-        if (r.width >= vw - 4 && r.height >= 100 && !within(el, 'footer, form, a, button, .kc-card, [data-kc-zone], ' + OURS)) vellum(el, s);
-        continue;
-      }
-      if (TEALS.some(function (t) { return near(c, t, 10); }) && (within(el, 'a, button, [role="button"]') || el.matches('input[type="submit"]'))) {
-        r = rect(el);
-        if (r.width >= 60 && r.height < 120 && text(el).length > 2) {
-          var join = parseFloat(s.borderTopLeftRadius) === 0 && parseFloat(s.borderTopRightRadius) > 0;
-          el.classList.add('kc-btn');
-          if (join) el.classList.add('kc-btn-join');
-        }
-      }
-    }
-
-    // 2. Outlined buttons (like the one in the header)
-    for (i = 0; i < all.length; i++) {
-      el = all[i];
-      if (!el.matches || !el.matches('a, button, [role="button"]')) continue;
-      if (el.classList.contains('kc-btn') || el.classList.contains('kc-btn-outline') || el.querySelector('.kc-btn') || within(el, OURS) || el.classList.contains('kc-gloss')) continue;
-      s = st(el); c = rgb(s.backgroundColor);
-      var bc = rgb(s.borderTopColor);
-      if ((!c || c.a === 0 || (c.r > 200 && c.g > 200 && c.b > 200)) && framed(s) && bc && bc.a > 0 && text(el).length > 2 && rect(el).width >= 60) el.classList.add('kc-btn-outline');
-    }
-
-    // 3. Cards: the framed box around a red button (the event card)
-    var btns = document.querySelectorAll('.kc-btn');
-    for (i = 0; i < btns.length; i++) {
-      if (btns[i].closest('.kc-card')) continue;
-      for (var p = btns[i].parentElement, d = 0; p && p !== document.body && d < 10; d++, p = p.parentElement) {
-        s = st(p);
-        if (!(framed(s) || s.boxShadow !== 'none')) continue;
-        r = rect(p);
-        if (r.width >= vw - 8 || r.height >= 1000) break;
-        if (r.height > 150) { p.classList.add('kc-card'); break; }
-      }
-    }
-    var inCards = document.querySelectorAll('.kc-card *:not(.kc-pill):not([class*="kc-seal"])');
-    for (i = 0; i < inCards.length; i++) {
-      if (near(rgb(st(inCards[i]).backgroundColor), PILL, 4)) inCards[i].classList.add('kc-pill');
-    }
-
-    // 4. Footer: find it once per page (again on sweeps), keep its mandala, hide the payment icons
+  function footer(vw, sweep) {
+    var i, el, r, s;
     if (zone && !zone.isConnected) zone = null;
     if (!zone && sweep) {
       foot = findFooter(vw);
       if (foot) {
         var fr = rect(foot);
         zone = foot;
-        for (var up = foot.parentElement, u = 0; up && up !== document.body && u < 3; u++, up = up.parentElement) {
+        for (var up = foot.parentElement, u = 0; up && up !== D.body && u < 3; u++, up = up.parentElement) {
           if (rect(up).height > fr.height * 1.6) break;
           zone = up;
         }
       }
     }
-    if (zone) {
-      if (zone.getAttribute('data-kc-zone') !== '1') zone.setAttribute('data-kc-zone', '1');   // Part 12 hangs the colophon after this
-      if (!zone.classList.contains('kc-footer') && (sweep || !zone.dataset.kcBg)) {
-        zone.dataset.kcBg = '1';
-        var zr = rect(zone), list = [zone].concat([].slice.call(zone.querySelectorAll('*'))), bgEl = null, bgImg = null;
-        for (i = 0; i < list.length && !bgEl && !bgImg; i++) {
-          el = list[i]; r = rect(el);
-          if (r.width < zr.width * 0.8 || r.height < zr.height * 0.5) continue;
-          s = st(el);
-          if (s.backgroundImage.indexOf('url(') > -1) bgEl = el;
-          else if (/^(IMG|PICTURE|VIDEO)$/.test(el.tagName)) bgImg = el;
-        }
-        if (bgEl) { keepMandala(bgEl, st(bgEl)); bgEl.classList.add('kc-footer-bg'); }
-        if (bgImg) { bgImg.classList.add('kc-footer-img'); if (on('footerMandala')) bgImg.classList.add('kc-mandala'); bgImg.parentElement.classList.add('kc-footer-solid'); }
-        if (bgEl || bgImg) zone.classList.add('kc-footer');
+    if (!zone) return;
+    if (zone.getAttribute('data-kc-zone') !== '1') zone.setAttribute('data-kc-zone', '1');   // Part 12 hangs the colophon after this
+    if (!has(zone, 'footer') && (sweep || !zone.getAttribute('data-kc-bg'))) {
+      zone.setAttribute('data-kc-bg', '1');
+      var zr = rect(zone), list = [zone].concat([].slice.call(zone.querySelectorAll('*'))), bgEl = null, bgImg = null;
+      for (i = 0; i < list.length && !bgEl && !bgImg; i++) {
+        el = list[i]; r = rect(el);
+        if (r.width < zr.width * 0.8 || r.height < zr.height * 0.5) continue;
+        s = st(el);
+        if (s.backgroundImage.indexOf('url(') > -1) bgEl = el;
+        else if (/^(IMG|PICTURE|VIDEO)$/.test(el.tagName)) bgImg = el;
       }
-      if (sweep && !zone.dataset.kcPay) {
-        var PAY = /visa|master ?card|amex|american express|discover|jcb|apple ?pay|google ?pay|cash ?app|afterpay|diners|union ?pay/i, hits = [];
-        var icons = zone.querySelectorAll('img, svg');
-        for (i = 0; i < icons.length; i++) {
-          el = icons[i];
-          var t = [el.getAttribute('alt'), el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('src'), el.querySelector('title') ? el.querySelector('title').textContent : ''].join(' ');
-          if (PAY.test(t)) hits.push(el);
-        }
-        if (hits.length >= 3) {
-          zone.dataset.kcPay = '1';
-          var g = hits[0].parentElement;
-          while (g && !hits.every(function (h) { return g.contains(h); })) g = g.parentElement;
-          if (g && g !== zone && g !== foot && rect(g).height < 160 && !g.querySelector('input, nav, h1, h2, h3, p') && g.textContent.indexOf('\u00A9') < 0) g.classList.add('kc-hide');
-          else hits.forEach(function (h) { h.classList.add('kc-hide'); });
-        }
+      if (bgEl) { keepMandala(bgEl, st(bgEl)); markNow(bgEl, 'footbg'); }
+      if (bgImg) { markNow(bgImg, 'footimg'); if (on('footerMandala')) markNow(bgImg, 'mandala'); markNow(bgImg.parentElement, 'footsolid'); }
+      if (bgEl || bgImg) markNow(zone, 'footer', true, true);
+    }
+    if (sweep && !zone.getAttribute('data-kc-pay')) {
+      var PAY = /visa|master ?card|amex|american express|discover|jcb|apple ?pay|google ?pay|cash ?app|afterpay|diners|union ?pay/i, hits = [];
+      var icons = zone.querySelectorAll('img, svg');
+      for (i = 0; i < icons.length; i++) {
+        el = icons[i];
+        var t = [el.getAttribute('alt'), el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('src'), el.querySelector('title') ? el.querySelector('title').textContent : ''].join(' ');
+        if (PAY.test(t)) hits.push(el);
+      }
+      if (hits.length >= 3) {
+        zone.setAttribute('data-kc-pay', '1');
+        var g = hits[0].parentElement;
+        while (g && !hits.every(function (h) { return g.contains(h); })) g = g.parentElement;
+        if (g && g !== zone && g !== foot && rect(g).height < 160 && !g.querySelector('input, nav, h1, h2, h3, p') && g.textContent.indexOf('\u00A9') < 0) mark(g, 'hide');
+        else hits.forEach(function (h) { mark(h, 'hide'); });
       }
     }
-
-    // 5. Plates: content images the site already rounds get the plate treatment
-    for (i = 0; i < all.length; i++) {
-      el = all[i];
-      if (el.tagName !== 'IMG') continue;
-      if ((zone && zone.contains(el)) || within(el, 'header, footer, nav, .kc-card, .kc-header, .kc-tile, [class*="logo"], .kc-btn, ' + OURS)) continue;
-      r = rect(el);
+  }
+  function cards(vw) {
+    if (window.KCFOJ_commerce()) return;   // cart and checkout keep Square's own boxes
+    var btns = D.querySelectorAll(BTN), i, s, r;
+    for (i = 0; i < btns.length; i++) {
+      if (btns[i].closest('[data-kc~="card"]') || inOurs(btns[i]) || within(btns[i], window.KCFOJ_DIALOGS)) continue;
+      for (var p = btns[i].parentElement, d = 0; p && p !== D.body && d < 10; d++, p = p.parentElement) {
+        s = st(p);
+        if (!(framed(s) || s.boxShadow !== 'none')) continue;
+        r = rect(p);
+        if (r.width >= vw - 8 || r.height >= 1000) break;
+        if (r.height > 150) { markNow(p, 'card'); break; }
+      }
+    }
+    var inCards = D.querySelectorAll('[data-kc~="card"] *:not([data-kc~="pill"]):not([class*="kc-seal"])');
+    for (i = 0; i < inCards.length; i++) {
+      if (near(rgb(st(inCards[i]).backgroundColor), PILL, 4)) markNow(inCards[i], 'pill');
+    }
+  }
+  // Plates: content images the site already rounds get the plate treatment
+  function tiles(list, vw) {
+    if (window.KCFOJ_commerce()) return;
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i];
+      if (el.tagName !== 'IMG' || !el.isConnected) continue;
+      if ((zone && zone.contains(el)) || within(el, 'header, footer, nav, [data-kc~="card"], [data-kc~="header"], [data-kc~="tile"], [class*="logo"], ' + BTN + ', ' + OURS + ', ' + window.KCFOJ_DIALOGS)) continue;
+      var r = rect(el);
       if (r.width < 120 || r.width > vw * 0.9) continue;
-      for (var n2 = el, target = null, k = 0; n2 && n2 !== document.body && k < 5; k++, n2 = n2.parentElement) {
+      for (var n2 = el, target = null, k = 0; n2 && n2 !== D.body && k < 5; k++, n2 = n2.parentElement) {
         var nr = rect(n2);
         if (Math.abs(nr.width - r.width) > 4 || Math.abs(nr.height - r.height) > 4) break;
         if (parseFloat(st(n2).borderTopLeftRadius) > 0) target = n2;
       }
-      if (target) target.classList.add('kc-tile');
+      if (target) mark(target, 'tile');
     }
-
-    if (window.performance) { stats.lastMs = Math.round((performance.now() - t0) * 10) / 10; stats.ms += stats.lastMs; }
-    stats.runs++;
+  }
+  // Part 11 asks for a fresh look at one gallery's plates when Square redraws them
+  window.KCFOJ_tiles = function (root) { tiles(root.getElementsByTagName('img'), window.innerWidth); };
+  function heavy() {
+    hq = 0;
+    if (!D.body) return;
+    var t0 = now(), sweep = false, list, vw = window.innerWidth;
+    zoomable();
+    if (location.pathname !== lastPath) { lastPath = location.pathname; fullHeavy = true; zone = null; foot = null; }
+    if (fullHeavy) { list = D.body.getElementsByTagName('*'); fullHeavy = false; sweep = true; stats.fullSweeps++; }
+    else list = expand(heavyDirty);
+    heavyDirty = [];
+    try {
+      cards(vw);
+      footer(vw, sweep);
+      settle();
+      tiles(list, vw);
+    } catch (e) { nowList.forEach(function (x) { x.removeAttribute('data-kc-now'); }); nowList = []; if (window.console) console.warn('KCFOJ core:', e); }
+    stats.heavyPasses++; stats.runs++;
     if (window.KCFOJ_wow) window.KCFOJ_wow();
+    (window.KCFOJ_after || []).forEach(function (f) { try { f(); } catch (e) { if (window.console) console.warn('KCFOJ:', e); } });
+    var ms = now() - t0;
+    stats.lastMs = Math.round(ms * 10) / 10; stats.heavyMs += ms; if (ms > stats.heavyMaxMs) stats.heavyMaxMs = stats.lastMs;
+  }
+  // Before the next frame; in a tab that is out of sight (where frames wait) on a timer instead,
+  // so a page opened in the background is finished when you switch to it
+  function scheduleHeavy() { if (!hq) hq = D.hidden ? setTimeout(heavy, 16) : requestAnimationFrame(heavy); }
+  // Text alone changing (a counter ticking, say) needs the heavier work at most four times a second
+  var textAt = 0, textQ = 0;
+  function scheduleForText() {
+    if (hq || textQ) return;
+    var wait = Math.max(0, 250 - (now() - textAt));
+    textQ = setTimeout(function () { textQ = 0; textAt = now(); scheduleHeavy(); }, wait);
+  }
+  window.KCFOJ_schedule = function (full) { if (full) fullHeavy = true; scheduleHeavy(); };
+
+  // ----- The observer -----
+  // An element Square changes more than 15 times a second is being animated by Square;
+  // it is left alone for three seconds rather than checked on every frame
+  var heat = window.WeakMap ? new WeakMap() : null;
+  function hot(el) {
+    if (!heat) return false;
+    var t = now(), h = heat.get(el);
+    if (!h) { heat.set(el, { n: 1, t: t, until: 0 }); return false; }
+    if (h.until > t) return true;
+    if (t - h.t > 1000) { h.n = 1; h.t = t; return false; }
+    if (++h.n > 15) { h.until = t + 3000; stats.hot++; return true; }
+    return false;
+  }
+  // Elements Square is animating are still looked at, once per frame, before the frame is drawn
+  var hotQ = window.Set ? new Set() : null, hotRaf = 0, hotClass = window.WeakMap ? new WeakMap() : null, hotAll = false;
+  function hotCheck() {
+    hotRaf = 0;
+    var l = [];
+    hotQ.forEach(function (el) {
+      if (!el.isConnected) return;
+      l.push(el);
+      // Its class really changed (not only its inline style): what is inside may be recolored too
+      var c = el.getAttribute('class') || '';
+      if (hotClass && hotClass.get(el) !== c) {
+        hotClass.set(el, c);
+        var inner = el.getElementsByTagName('*');
+        if (inner.length <= 400) for (var j = 0; j < inner.length; j++) l.push(inner[j]);
+        else hotAll = true;
+      }
+    });
+    hotQ.clear();
+    if (hotAll) { hotAll = false; wholePage(true); }
+    if (l.length) paint(l);
+  }
+  // The parents of anything added: a block that has just grown may now count as a section
+  function parentsOf(roots) {
+    var out = [], seen = new Set();
+    for (var i = 0; i < roots.length; i++) {
+      for (var a = roots[i].parentElement; a && a !== R; a = a.parentElement) {
+        if (seen.has(a)) break;
+        seen.add(a);
+        out.push(a);
+      }
+    }
+    return out;
+  }
+  var htmlOwn = ['kc-boot'];
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) htmlOwn.push('kc-still');
+  // A whole-page look when something large changed, always before the next frame. Only if Square
+  // keeps restyling large parts of the page nonstop (ten looks inside a second) are further looks
+  // spaced 100ms apart, and even then the last change always gets its look.
+  var bigSweepQ = 0, sweepAt = -1e9, sweepT = 0, sweepTimes = [];
+  function wholePage(inFrame) {
+    var t = now();
+    while (sweepTimes.length && t - sweepTimes[0] > 1000) sweepTimes.shift();
+    var gap = sweepTimes.length >= 10 ? 100 : 0;
+    if (inFrame && t - sweepAt >= gap) {
+      if (bigSweepQ) { cancelAnimationFrame(bigSweepQ); bigSweepQ = 0; }
+      bigSweep();
+      return;
+    }
+    if (bigSweepQ || sweepT) return;
+    var wait = gap - (t - sweepAt);
+    if (wait <= 0) bigSweepQ = requestAnimationFrame(bigSweep);
+    else sweepT = setTimeout(function () { sweepT = 0; bigSweepQ = requestAnimationFrame(bigSweep); }, wait);
+  }
+  function bigSweep() {
+    bigSweepQ = 0; sweepAt = now(); sweepTimes.push(sweepAt); stats.fullSweeps++;
+    paint(everything());
+  }
+  function onSheetLoad() { paint(everything()); scheduleHeavy(); }
+  // A style sheet Square links in later is looked for at the start of every frame until it has
+  // arrived, so the page is repainted in the same frame the sheet first applies (the load
+  // event alone can come a frame late). The load event stays as a backup for hidden tabs.
+  function watchSheet(link) {
+    var n = 0, done = false;
+    function now2() { if (done) return; done = true; onSheetLoad(); }
+    link.addEventListener('load', now2);
+    (function look() {
+      if (done || !link.isConnected) return;
+      if (link.sheet) { now2(); return; }
+      if (++n < 900) requestAnimationFrame(look);
+    })();
+  }
+  // Square changing the page's own class or inline style (a theme switch, say) is a reason to
+  // look at the whole page before the next frame; the marks this script keeps there are not
+  var rootSeen = null;
+  function rootKey() { return (R.getAttribute('class') || '').replace(/(^|\s)kc-\S+/g, '').trim() + '|' + (R.getAttribute('style') || ''); }
+  function sheetText(r) {
+    var t = r.target;
+    return t && t.tagName === 'STYLE' && !t.hasAttribute('data-kc-style');
+  }
+  function observe(recs) {
+    stats.observerCalls++; stats.records += recs.length;
+    var roots = [], changed = [], sheet = false, back = false, texty = false, rootMoved = false, i, j, n;
+    for (i = 0; i < recs.length; i++) {
+      var r = recs[i];
+      if (r.type === 'childList') {
+        // New text in one of Square's style elements: new rules, so the whole page is looked at now
+        if (sheetText(r)) { sheet = true; continue; }
+        var a = r.addedNodes;
+        for (j = 0; j < a.length; j++) {
+          n = a[j];
+          if (n.nodeType === 1) {
+            var tag = n.tagName;
+            if (tag === 'STYLE' || (tag === 'LINK' && /stylesheet/i.test(n.rel || ''))) {
+              if (!n.hasAttribute('data-kc-style')) {
+                sheet = true;
+                if (tag === 'LINK') watchSheet(n);
+              }
+              continue;
+            }
+            if (tag === 'META') { zoomable(); continue; }
+            if (/^(SCRIPT|TITLE|NOSCRIPT|TEMPLATE|BASE)$/.test(tag) || made(n) || inOurs(n)) continue;
+            roots.push(n);
+          } else if (n.nodeType === 3 && n.parentElement && !inOurs(n.parentElement)) {
+            heavyDirty.push(n.parentElement); texty = true;
+          }
+        }
+        var gone = r.removedNodes;
+        for (j = 0; j < gone.length; j++) {
+          n = gone[j];
+          if (n.nodeType !== 1) continue;
+          if (n.hasAttribute && n.hasAttribute('data-kc-style')) back = true;
+          else if (made(n)) texty = true;   // something of ours was taken away: the heavy pass puts it back
+        }
+      } else {
+        var el = r.target;
+        if (el === R) {
+          // Keep the page-level marks the boot block and reduced motion rely on
+          for (j = 0; j < htmlOwn.length; j++) if (!R.classList.contains(htmlOwn[j])) R.classList.add(htmlOwn[j]);
+          var key = rootKey();
+          if (rootSeen !== null && key !== rootSeen) rootMoved = true;
+          rootSeen = key;
+          continue;
+        }
+        if (r.attributeName === 'content') { if (el.tagName === 'META') zoomable(); continue; }
+        if (made(el) || inOurs(el)) continue;
+        if (r.attributeName === 'style' && self.has(el)) continue;
+        if (hot(el)) {
+          if (hotQ) { hotQ.add(el); if (!hotRaf) hotRaf = requestAnimationFrame(hotCheck); }
+          continue;
+        }
+        stats.styleChanges++;
+        changed.push(el);
+      }
+    }
+    if (back) {
+      (window.KCFOJ_sheets || []).forEach(function (t) { if (!t.isConnected) { (D.head || R).appendChild(t); stats.sheetsPutBack++; } });
+    }
+    var list = null;
+    if (sheet) { list = everything(); stats.fullSweeps++; }
+    else if (roots.length || changed.length) {
+      list = expand(roots).concat(parentsOf(roots));
+      for (i = 0; i < changed.length; i++) {
+        var c = changed[i];
+        if (!c.isConnected) continue;
+        list.push(c);
+        // A restyled element can recolor what is inside it: look inside small ones now,
+        // and sweep the page before the next frame when a large one changes
+        var inner = c.getElementsByTagName('*');
+        if (inner.length <= 400) for (j = 0; j < inner.length; j++) list.push(inner[j]);
+        else rootMoved = true;
+      }
+    }
+    // At most one whole-page look per frame, always before that frame is drawn
+    if (rootMoved && !sheet) wholePage(false);
+    var fresh = list ? paint(list) : 0;
+    if (roots.length) holdGalleries(roots);
+    if (roots.length || fresh || sheet) {
+      for (i = 0; i < roots.length; i++) heavyDirty.push(roots[i]);
+      scheduleHeavy();
+    } else if (texty) scheduleForText();
+  }
+  rootSeen = rootKey();
+  var mo = new MutationObserver(observe);
+  mo.observe(R, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'content'] });
+
+  // Pictures that finish loading change size, which matters for plates and cards
+  D.addEventListener('load', function (e) {
+    var t = e.target;
+    if (t && t.nodeType === 1 && t.tagName === 'IMG' && !inOurs(t)) { paint(parentsOf([t])); heavyDirty.push(t); scheduleHeavy(); }
+  }, true);
+  window.addEventListener('load', function () { fullHeavy = true; paint(everything()); scheduleHeavy(); });
+  if (D.fonts && D.fonts.addEventListener) D.fonts.addEventListener('loadingdone', scheduleHeavy);
+  if (window.KCFOJ_listen) {
+    KCFOJ_listen('resize', function () {
+      // A new width can change what counts as full width: look again. Height alone
+      // (a phone's toolbar sliding away) only needs the layout work.
+      if (window.innerWidth !== lastW) { lastW = window.innerWidth; paint(everything()); fullHeavy = true; }
+      scheduleHeavy();
+    });
   }
 
-  // Square builds the page with JavaScript, so re-check what it adds as it renders
-  var timer = null, last = 0;
-  function schedule() {
-    if (timer) return;
-    timer = setTimeout(function () {
-      timer = null; last = Date.now();
-      try { run(); } catch (e) { if (window.console) console.warn('KCFOJ core:', e); }
-    }, Math.max(60, 350 - (Date.now() - last)));
+  // First look at whatever Square has drawn so far, then the heavier work before the next frame
+  if (D.body) {
+    paint(everything());
+    holdGalleries([D.body], true);
   }
-  window.KCFOJ_schedule = schedule;
-  new MutationObserver(function (recs) {
-    var any = false, i, j, n;
-    for (i = 0; i < recs.length; i++) {
-      var a = recs[i].addedNodes;
-      for (j = 0; j < a.length; j++) {
-        n = a[j];
-        if (n.nodeType === 1) { if (!ours(n)) { dirty.push(n); any = true; } }
-        else if (n.nodeType === 3 && n.parentElement && !ours(n.parentElement) && !ours(n.previousSibling) && !ours(n.nextSibling)) { dirty.push(n.parentElement); any = true; }
-      }
-      // If Square takes away something of ours, run again so it comes back
-      var gone = recs[i].removedNodes;
-      for (j = 0; j < gone.length && !any; j++) if (ours(gone[j])) any = true;
-    }
-    if (any) schedule();
-  }).observe(document.documentElement, { childList: true, subtree: true });
-  // Pictures that finish loading change size, which matters for plates and cards
-  document.addEventListener('load', function (e) { var t = e.target; if (t && t.nodeType === 1 && t.tagName === 'IMG' && !ours(t)) { dirty.push(t); schedule(); } }, true);
-  window.addEventListener('load', function () { full = true; schedule(); });
-  if (window.KCFOJ_listen) {
-    KCFOJ_listen('resize', function () { full = true; schedule(); });
-    // Some headers only take their color once you scroll; look once after the first real scroll
-    KCFOJ_listen('scroll', function () { if (!scrolled && window.pageYOffset > 120) { scrolled = true; full = true; schedule(); } });
-  }
-  schedule();
+  scheduleHeavy();
 })();
 
 /* ===== Part 3: the book layer =====
@@ -594,10 +1078,12 @@ nav a:not(.kc-btn):not(.kc-btn-outline){font-family:var(--kc-ui)!important;text-
    index line and Begin Here), one reveal system (headings ink in, blocks rise),
    card and plate tilt, the plate viewer opened as a book spread, and the night
    page, where a candle carries a quote and a hidden mandala out of the dark.
+   It also lifts the boot block's vellum cover once the page is ready.
    Words and switches live in Part 0. */
 (function () {
   var W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
   var listen = window.KCFOJ_listen || function () {};
+  var mark = window.KCFOJ_mark, unmark = window.KCFOJ_unmark, has = window.KCFOJ_has, self = window.KCFOJ_self;
   var KC = {
     name: W.name || 'Kansas City Friends of Jung',
     quote: W.quote || 'Who looks outside, dreams; who looks inside, awakes.',
@@ -612,6 +1098,8 @@ nav a:not(.kc-btn):not(.kc-btn-outline){font-family:var(--kc-ui)!important;text-
   var roman = window.KCFOJ_roman || function (n) { return String(n); };
   var esc = window.KCFOJ_esc || function (s) { return String(s); };
   var mandala = window.KCFOJ_mandala || function () { return []; };
+  var now = window.performance ? function () { return performance.now(); } : function () { return Date.now(); };
+  var HERO = 'data-kc-hero';
 
   var css = `
 html.kc-lock{overflow:hidden}
@@ -631,23 +1119,24 @@ html.kc-lock{overflow:hidden}
 /* 2. The banner: warmed toward the paper, surfacing from a blur on arrival, then breathing
    slowly under a drifting warm light and a soft vignette. One filter chain carries both the
    tone and the blur, so the two never fight. */
-.kc-hero-wrap{overflow:clip!important}
-.kc-hero-toned{filter:sepia(calc(.2 * var(--kc-tone,1))) saturate(calc(1 - .12 * var(--kc-tone,1))) contrast(calc(1 + .03 * var(--kc-tone,1)))}
-.kc-hero-pre{filter:blur(18px) sepia(calc(.2 * var(--kc-tone,1))) saturate(.5) contrast(calc(1 + .03 * var(--kc-tone,1)));transform:scale(1.14);opacity:.35}
-.kc-hero-rise{animation:kcSurface 2.8s var(--kc-e) both}
-.kc-hero-rise.kc-hero-soft{animation-name:kcSurfaceSoft}
-.kc-hero-breathe{transform-origin:50% 60%;animation:kcBreathe 24s ease-in-out infinite alternate}
-.kc-hero-rise.kc-hero-breathe{animation:kcSurface 2.8s var(--kc-e) both,kcBreathe 24s 2.8s ease-in-out infinite alternate}
+[${HERO}~="wrap"]{overflow:clip!important}
+[${HERO}~="tone"]{--kc-tone:1;filter:sepia(calc(.2 * var(--kc-tone,1))) saturate(calc(1 - .12 * var(--kc-tone,1))) contrast(calc(1 + .03 * var(--kc-tone,1)))}
+[${HERO}~="flat"]{--kc-tone:0}
+[${HERO}~="pre"]{filter:blur(18px) sepia(calc(.2 * var(--kc-tone,1))) saturate(.5) contrast(calc(1 + .03 * var(--kc-tone,1)));transform:scale(1.14);opacity:.35}
+[${HERO}~="rise"]{animation:kcSurface 2.8s var(--kc-e) both}
+[${HERO}~="rise"][${HERO}~="soft"]{animation-name:kcSurfaceSoft}
+[${HERO}~="breathe"]{transform-origin:50% 60%;animation:kcBreathe 24s ease-in-out infinite alternate}
+[${HERO}~="rise"][${HERO}~="breathe"]{animation:kcSurface 2.8s var(--kc-e) both,kcBreathe 24s 2.8s ease-in-out infinite alternate}
 @keyframes kcSurface{from{filter:blur(18px) sepia(calc(.2 * var(--kc-tone,1))) saturate(.5) contrast(calc(1 + .03 * var(--kc-tone,1)));transform:scale(1.14);opacity:.35}to{filter:blur(0px) sepia(calc(.2 * var(--kc-tone,1))) saturate(calc(1 - .12 * var(--kc-tone,1))) contrast(calc(1 + .03 * var(--kc-tone,1)));transform:scale(1);opacity:1}}
 @keyframes kcSurfaceSoft{from{filter:blur(18px) sepia(calc(.2 * var(--kc-tone,1))) saturate(.5) contrast(calc(1 + .03 * var(--kc-tone,1)));opacity:.35}to{filter:blur(0px) sepia(calc(.2 * var(--kc-tone,1))) saturate(calc(1 - .12 * var(--kc-tone,1))) contrast(calc(1 + .03 * var(--kc-tone,1)));opacity:1}}
 @keyframes kcBreathe{from{transform:scale(1)}to{transform:scale(1.06)}}
 .kc-atmos{position:absolute;z-index:1;overflow:hidden;pointer-events:none}
-.kc-aurora{position:absolute;inset:0;overflow:hidden;pointer-events:none;mix-blend-mode:soft-light;opacity:.7;animation:kcGlow 19s ease-in-out infinite alternate}
-.kc-aurora::before{content:"";position:absolute;inset:-35%;background:radial-gradient(38% 46% at 32% 36%,rgba(214,168,98,.85),transparent 70%),radial-gradient(42% 52% at 68% 64%,rgba(139,42,36,.7),transparent 70%),radial-gradient(30% 40% at 54% 26%,rgba(255,244,226,.9),transparent 70%);animation:kcDrift 26s ease-in-out infinite alternate}
+.kc-aurora{position:absolute;inset:0;overflow:hidden;pointer-events:none;mix-blend-mode:soft-light;opacity:.7;animation:kcGlow 19s ease-in-out infinite alternate;animation-delay:var(--kc-t,0s)}
+.kc-aurora::before{content:"";position:absolute;inset:-35%;background:radial-gradient(38% 46% at 32% 36%,rgba(214,168,98,.85),transparent 70%),radial-gradient(42% 52% at 68% 64%,rgba(139,42,36,.7),transparent 70%),radial-gradient(30% 40% at 54% 26%,rgba(255,244,226,.9),transparent 70%);animation:kcDrift 26s ease-in-out infinite alternate;animation-delay:var(--kc-t,0s)}
 .kc-vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 160px rgba(20,12,10,.34),inset 0 -70px 90px -50px rgba(20,12,10,.3)}
 @keyframes kcDrift{from{transform:translate3d(-9%,-6%,0) rotate(0deg)}to{transform:translate3d(9%,6%,0) rotate(8deg)}}
 @keyframes kcGlow{from{opacity:.55}to{opacity:.85}}
-.kc-hero-rest,.kc-hero-rest .kc-aurora,.kc-hero-rest .kc-aurora::before,.kc-hero-rest>.kc-hero-breathe{animation-play-state:paused!important}
+[${HERO}~="rest"],[${HERO}~="rest"] .kc-aurora,[${HERO}~="rest"] .kc-aurora::before,[${HERO}~="rest"]>[${HERO}~="breathe"]{animation-play-state:paused!important}
 @media (max-width:760px){.kc-aurora,.kc-aurora::before{animation:none}.kc-aurora{opacity:.62}.kc-vignette{box-shadow:inset 0 0 90px rgba(20,12,10,.3)}}
 .kc-still .kc-aurora,.kc-still .kc-aurora::before{animation:none}
 
@@ -676,21 +1165,35 @@ html.kc-lock{overflow:hidden}
 .kc-begin:hover b{text-decoration-color:currentColor}
 .kc-band.kc-band-inset{margin-bottom:clamp(28px,6vw,44px);background:none}
 .kc-band.kc-band-inset .kc-band-row{padding-inline:0}
+/* On phones the drifting words stay the atmosphere, and the index becomes one quiet row
+   you can slide sideways: still every word, still tap for its gloss */
+@media (max-width:760px){
+  .kc-frieze{padding-block:9px}
+  .kc-fw{font-size:clamp(20px,5.6vw,25px)}
+  .kc-band-row{display:block;padding-top:4px;padding-bottom:8px}
+  .kc-index{flex-wrap:nowrap;align-items:center;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-right:30px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 38px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 38px),transparent)}
+  .kc-index::-webkit-scrollbar{display:none}
+  .kc-index-lab{position:sticky;left:0;z-index:1;align-self:stretch;display:flex;align-items:center;margin-right:6px;padding-right:10px;background-color:var(--kc-cream);background-image:var(--kc-grain);background-size:240px 240px}
+  .kc-term{flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;min-height:44px;padding:0 2px;font-size:17px}
+  .kc-index>i{flex:0 0 auto;padding:0 .45em}
+  .kc-begin{padding:2px 0 0;font-size:14px!important}
+}
 .kc-still .kc-band.kc-band-in,.kc-still .kc-band-track{animation:none}
 
 /* 4. One reveal system: headings are inked in from the left and settle from a slight blur;
    paragraphs, cards and plates rise softly into place */
-.kc-rv.kc-rv{transition:opacity 1.2s var(--kc-e),transform 1.2s var(--kc-e)!important}
-.kc-rv{opacity:0;transform:translateY(22px)}
-.kc-rv.kc-in{opacity:1;transform:none}
-.kc-rv-h{-webkit-mask-image:linear-gradient(90deg,#000 40%,transparent 60%);mask-image:linear-gradient(90deg,#000 40%,transparent 60%);-webkit-mask-size:250% 100%;mask-size:250% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:100% 0;mask-position:100% 0;filter:blur(6px)}
-.kc-rv-h.kc-in{-webkit-mask-position:0 0;mask-position:0 0;filter:blur(0);transition:-webkit-mask-position 1.6s var(--kc-e),mask-position 1.6s var(--kc-e),filter 1.4s var(--kc-e)!important}
-@media print{.kc-rv,.kc-rv-h{opacity:1!important;transform:none!important;filter:none!important;-webkit-mask:none!important;mask:none!important}}
+[data-kc-rv="wait-b"]{opacity:0;transform:translateY(22px)}
+[data-kc-rv="wait-b"]:focus-within{opacity:1;transform:none}
+[data-kc-rv="in-b"]{opacity:1;transform:none;transition:opacity 1.2s var(--kc-e),transform 1.2s var(--kc-e)!important}
+[data-kc-rv="wait-h"]{-webkit-mask-image:linear-gradient(90deg,#000 40%,transparent 60%);mask-image:linear-gradient(90deg,#000 40%,transparent 60%);-webkit-mask-size:250% 100%;mask-size:250% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:100% 0;mask-position:100% 0;filter:blur(6px)}
+[data-kc-rv="in-h"]{-webkit-mask-image:linear-gradient(90deg,#000 40%,transparent 60%);mask-image:linear-gradient(90deg,#000 40%,transparent 60%);-webkit-mask-size:250% 100%;mask-size:250% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:0 0;mask-position:0 0;filter:blur(0);transition:-webkit-mask-position 1.6s var(--kc-e),mask-position 1.6s var(--kc-e),filter 1.4s var(--kc-e)!important}
+@media print{[data-kc-rv]{opacity:1!important;transform:none!important;filter:none!important;-webkit-mask:none!important;mask:none!important}}
 
 /* 5. Cards and plates tilt a little under the mouse, with a paper sheen */
-.kc-sheen::after{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at var(--mx,50%) var(--my,30%),rgba(255,250,240,.5),transparent 58%);opacity:0;transition:opacity .4s;mix-blend-mode:soft-light}
-.kc-card.kc-sheen::after{background:radial-gradient(circle at var(--mx,50%) var(--my,30%),rgba(255,250,240,.34),transparent 62%)}
-@media (hover:hover){.kc-sheen:hover::after{opacity:1}}
+[data-kc~="sheen"]::after{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at var(--mx,50%) var(--my,30%),rgba(255,250,240,.5),transparent 58%);opacity:0;transition:opacity .4s;mix-blend-mode:soft-light}
+[data-kc~="card"][data-kc~="sheen"]::after{background:radial-gradient(circle at var(--mx,50%) var(--my,30%),rgba(255,250,240,.34),transparent 62%)}
+@media (hover:hover){[data-kc~="sheen"]:hover::after{opacity:1}}
+[data-kc-g]{cursor:zoom-in}
 
 /* 6. The plate viewer, opened like a book: a caption leaf on the left, the plate on the right */
 .kc-lb{position:fixed;inset:0;z-index:2147483500;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:64px 70px;background-color:#16100E;background-image:var(--kc-leather);background-size:260px 260px;opacity:0;transition:opacity .45s ease;cursor:zoom-out}
@@ -719,14 +1222,17 @@ html.kc-lock{overflow:hidden}
 .kc-still .kc-lb-book,.kc-still .kc-lb-leaf{transition:none;transform:none}
 
 /* 7. The night page: red-black leather, a candle, the quote coming out of the dark,
-   and a mandala in the leather that only the candle shows */
-.kc-shadow{position:relative!important;overflow:hidden!important;background-color:var(--kc-night)!important;background-image:var(--kc-leather)!important;background-size:260px 260px!important;min-height:clamp(420px,72vh,680px)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:clamp(72px,11vw,140px) 24px!important;margin:0!important;--x:50%;--y:50%;--kc-r:220px}
+   and a mandala in the leather that only the candle shows. On touch screens the whole
+   quote stays faintly readable (about a quarter strength) and the candle brings parts
+   of it up to full. */
+.kc-shadow{position:relative!important;overflow:hidden!important;background-color:var(--kc-night)!important;background-image:var(--kc-leather)!important;background-size:260px 260px!important;min-height:clamp(420px,72vh,680px)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:clamp(72px,11vw,140px) 24px!important;margin:0!important;--x:50%;--y:50%;--kc-r:220px;--kc-qbase:.07}
+@media (hover:none),(pointer:coarse){.kc-shadow{--kc-qbase:.28}}
 .kc-shadow::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle min(calc(var(--kc-r) * 1.7), 380px) at var(--x) var(--y),rgba(255,210,150,.16),rgba(255,210,150,.05) 45%,transparent 72%)}
 .kc-shadow::after{content:"";position:absolute;inset:clamp(10px,1.6vw,20px);border:1px solid rgba(168,132,79,.22);outline:1px solid rgba(168,132,79,.12);outline-offset:-7px;pointer-events:none}
 .kc-night-art{position:absolute;left:50%;top:50%;width:min(94vw,760px);aspect-ratio:1;transform:translate(-50%,-50%);pointer-events:none;opacity:.42;-webkit-mask-image:radial-gradient(circle calc(var(--kc-r) * 1.3) at var(--ax,50%) var(--ay,50%),#000 0%,rgba(0,0,0,.4) 40%,transparent 70%);mask-image:radial-gradient(circle calc(var(--kc-r) * 1.3) at var(--ax,50%) var(--ay,50%),#000 0%,rgba(0,0,0,.4) 40%,transparent 70%)}
 .kc-night-art svg{display:block;width:100%;height:100%;overflow:visible}
 .kc-night-art svg *{fill:none;stroke:var(--kc-gold);stroke-width:.55}
-.kc-shadow-q{position:relative;margin:0;max-width:15ch;text-align:center;font:italic 400 clamp(34px,6.2vw,76px)/1.12 var(--kc-serif);letter-spacing:-.01em;text-wrap:balance;color:transparent;background:radial-gradient(circle var(--kc-r) at var(--qx,50%) var(--qy,50%),#F6EEDF 0%,rgba(246,238,223,.6) 38%,rgba(246,238,223,.07) 72%);-webkit-background-clip:text;background-clip:text}
+.kc-shadow-q{position:relative;margin:0;max-width:15ch;text-align:center;font:italic 400 clamp(34px,6.2vw,76px)/1.12 var(--kc-serif);letter-spacing:-.01em;text-wrap:balance;color:transparent;background:radial-gradient(circle var(--kc-r) at var(--qx,50%) var(--qy,50%),#F6EEDF 0%,rgba(246,238,223,.6) 38%,rgba(246,238,223,var(--kc-qbase,.07)) 72%);-webkit-background-clip:text;background-clip:text}
 .kc-shadow-by{display:block;margin-top:1.3em;font:400 11px/1.4 var(--kc-mono);font-style:normal;letter-spacing:.3em;text-transform:uppercase}
 .kc-shadow-hint{position:absolute;left:0;right:0;bottom:28px;padding:0 16px;text-align:center;font:400 10px/1.4 var(--kc-mono);letter-spacing:.28em;text-transform:uppercase;color:rgba(244,237,225,.5);transition:opacity .8s}
 .kc-shadow.kc-used .kc-shadow-hint{opacity:0}
@@ -736,14 +1242,13 @@ html.kc-lock{overflow:hidden}
 .kc-lit .kc-night-art{opacity:.08;-webkit-mask-image:none;mask-image:none}
 .kc-lit .kc-shadow-hint{display:none}
 `;
-  var tag = D.createElement('style');
-  tag.textContent = css;
-  (D.head || R).appendChild(tag);
+  window.KCFOJ_style(css, 'book');
   if (still) R.classList.add('kc-still');
 
   function rect(el) { return el.getBoundingClientRect(); }
   function mk(t, cls, html) { var e = D.createElement(t); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; }
-  function chrome(el) { return !!el.closest('header, footer, nav, .kc-lb, .kc-band, .kc-shadow, .kc-footer, .kc-header, .kc-margin, .kc-def, .kc-colophon, .kc-veil'); }
+  function chrome(el) { return !!el.closest('header, footer, nav, .kc-lb, .kc-band, .kc-shadow, [data-kc~="footer"], [data-kc~="header"], .kc-margin, .kc-def, .kc-colophon, .kc-veil'); }
+  function overlay(el) { try { return !!el.closest(window.KCFOJ_DIALOGS); } catch (e) { return false; } }
   function inside(a, b) { var x = a.left + a.width / 2, y = a.top + a.height / 2; return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom; }
   // The top-level page section an element lives in (its parent holds 3+ full-width blocks)
   function sectionOf(el) {
@@ -760,9 +1265,43 @@ html.kc-lock{overflow:hidden}
     return null;
   }
 
-  // 1. Arrival veil: once per visit, lifted by a tap, a key, a scroll, or after a few seconds
-  var veilUp = false, queue = [], arrival = false;
+  // 0. The boot block's vellum cover comes off once Square's page is drawn in our colors,
+  //    its style sheets and fonts are in, and the heavier work has run once. It never waits
+  //    past 2.6 seconds into the page, or 1.5 seconds after this script arrives, and the boot
+  //    block takes it off by itself after 3 seconds.
+  var began = now();
+  function covered() {
+    if (!R.classList.contains('kc-cover') || R.classList.contains('kc-uncover')) return false;
+    var at = window.KCFOJ_bootAt;   // when the boot block put the cover on
+    return typeof at !== 'number' || now() - at < 2950;
+  }
+  function uncover(instant) {
+    window.KCFOJ_coverDone = true;  // the boot block stops guarding the cover
+    if (window.KCFOJ_bootMO) { window.KCFOJ_bootMO.disconnect(); window.KCFOJ_bootMO = null; }
+    if (!R.classList.contains('kc-cover')) return;
+    if (instant || still) { R.classList.remove('kc-cover', 'kc-uncover'); return; }
+    R.classList.add('kc-uncover');
+    setTimeout(function () { R.classList.remove('kc-cover', 'kc-uncover'); }, 320);
+  }
+  function pageReady() {
+    var st = window.KCFOJ_stats || {};
+    if (!st.heavyPasses || !D.body) return now() - began > 1500;
+    if (now() > 2600 || now() - began > 1500) return true;
+    if (D.body.getElementsByTagName('*').length < 25 || !D.querySelector('header, footer, nav, main, [data-kc-zone]')) return false;
+    var links = D.querySelectorAll('link[rel~="stylesheet"]');
+    for (var i = 0; i < links.length; i++) if (!links[i].sheet && !links[i].disabled && links[i].media !== 'print') return false;
+    if (D.fonts && D.fonts.status === 'loading' && now() < 1800) return false;
+    return true;
+  }
+  function coverCheck() { if (covered() && !veilUp && pageReady()) uncover(); }
+  window.KCFOJ_after.push(coverCheck);
+  if (covered()) (function poll() { coverCheck(); if (covered()) setTimeout(poll, 120); })();
+
+  // 1. Arrival veil: once per visit, lifted by a tap, a key, a scroll, or after a few seconds.
+  //    With the boot block in place it takes over from the vellum cover in the same frame.
+  var veilUp = false, queue = [], arrival = false, liftVeil = null;
   function whenClear(fn) { if (veilUp) queue.push(fn); else fn(); }
+  listen('key', function () { if (veilUp && liftVeil) liftVeil(); });
   function mandalaSVG(cls) {
     var s = '<svg viewBox="-110 -110 220 220" aria-hidden="true" focusable="false">', d = 0, shapes = mandala();
     shapes.forEach(function (x, i) {
@@ -775,12 +1314,15 @@ html.kc-lock{overflow:hidden}
     var seen = false;
     try { seen = sessionStorage.getItem('kcVeil') === '1'; sessionStorage.setItem('kcVeil', '1'); } catch (e) {}
     if (still || (seen && !force)) return;
+    // Without the cover, a page the visitor can already see is never covered up again
+    if (!force && !covered() && now() > 1500) return;
     arrival = true;               // the first page of a visit: the banner surfaces from a blur
     if (!on('arrivalVeil')) return;
     var v = mk('div', 'kc-veil', mandalaSVG('kc-draw'));
     var nm = mk('div', 'kc-veil-name'); nm.textContent = KC.name; v.appendChild(nm);
     v.setAttribute('aria-hidden', 'true');
     R.appendChild(v);
+    uncover(true);
     [].forEach.call(v.querySelectorAll('.kc-draw'), function (p) {
       var L = 700;
       try { L = Math.ceil(p.getTotalLength()) + 2; } catch (e) {}
@@ -802,7 +1344,7 @@ html.kc-lock{overflow:hidden}
     v.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); lift(); });
     window.addEventListener('wheel', lift, { passive: true });
     window.addEventListener('touchmove', lift, { passive: true });
-    listen('key', function () { if (veilUp) lift(); });
+    liftVeil = lift;
     // Phones keep showing the previous page until this one paints, so time the hold from the
     // moment the drawing animation starts (that is when the veil becomes visible)
     var armed = false;
@@ -817,7 +1359,7 @@ html.kc-lock{overflow:hidden}
   }
 
   // 2. The banner: warmed toward the paper; on arrival it surfaces from a blur, then breathes
-  var heroEl = null, heroSoft = false, heroIO = null, heroHost = null, atmos = null;
+  var heroEl = null, heroSoft = false, heroIO = null, heroHost = null, atmos = null, atmosT0 = 0;
   // Only clip a small, plain box around the banner: never the page, never anything that scrolls
   function safeWrap(w, r) {
     if (!w || w === D.body || w === R || !(window.CSS && CSS.supports && CSS.supports('overflow', 'clip'))) return false;
@@ -826,26 +1368,27 @@ html.kc-lock{overflow:hidden}
     if (w.scrollHeight > w.clientHeight + 4) return false;
     return wr.height <= r.height * 1.25 && wr.height <= window.innerHeight * 1.3;
   }
+  var HEROWORDS = ['tone', 'flat', 'pre', 'rise', 'breathe', 'soft', 'wrap', 'rest'];
+  function clearHero(el) { HEROWORDS.forEach(function (w) { unmark(el, w, HERO); }); }
   function surface(force) {
     if (!heroEl) return;
-    var tone = on('heroTone') ? '1' : '0';
-    heroEl.style.setProperty('--kc-tone', tone);
-    heroEl.classList.remove('kc-hero-rise', 'kc-hero-breathe', 'kc-hero-soft', 'kc-hero-pre');
-    heroEl.classList.add('kc-hero-toned');
+    ['pre', 'rise', 'breathe', 'soft'].forEach(function (w) { unmark(heroEl, w, HERO); });
+    mark(heroEl, 'tone', HERO);
+    if (!on('heroTone')) mark(heroEl, 'flat', HERO);
     if (still || !on('heroBreathing')) return;
     var breathe = !heroSoft;
     var firstLook = arrival || force;
     if (!firstLook) {
       // Coming back to the homepage later in the visit: no blur (nothing blinks), just the breathing
-      if (breathe) heroEl.classList.add('kc-hero-breathe');
+      if (breathe) mark(heroEl, 'breathe', HERO);
       return;
     }
-    heroEl.classList.add('kc-hero-pre');
+    mark(heroEl, 'pre', HERO);
     whenClear(function () {
-      heroEl.classList.remove('kc-hero-pre');
+      unmark(heroEl, 'pre', HERO);
       void heroEl.offsetWidth;
-      heroEl.classList.add('kc-hero-rise');
-      if (breathe) heroEl.classList.add('kc-hero-breathe'); else heroEl.classList.add('kc-hero-soft');
+      mark(heroEl, 'rise', HERO);
+      mark(heroEl, breathe ? 'breathe' : 'soft', HERO);
     });
   }
   // The warm light and vignette cover the banner picture only, never the band or header below it
@@ -869,17 +1412,19 @@ html.kc-lock{overflow:hidden}
     [].forEach.call(D.querySelectorAll(sel), function (x) { if (x !== keep && x.parentNode) x.parentNode.removeChild(x); });
   }
   function hero() {
-    if (heroEl && D.contains(heroEl)) { fitAtmos(); return; }
+    if (heroEl && D.contains(heroEl)) {
+      if (atmos && !D.contains(atmos) && heroEl.parentElement) placeAtmos(heroEl.parentElement);
+      fitAtmos();
+      return;
+    }
     heroEl = null;
     strays('.kc-atmos', null);
-    [].forEach.call(D.querySelectorAll('.kc-hero-toned, .kc-hero-pre, .kc-hero-rise, .kc-hero-breathe, .kc-hero-soft, .kc-hero-wrap'), function (x) {
-      x.classList.remove('kc-hero-toned', 'kc-hero-pre', 'kc-hero-rise', 'kc-hero-breathe', 'kc-hero-soft', 'kc-hero-wrap');
-    });
+    [].forEach.call(D.querySelectorAll('[' + HERO + ']'), clearHero);
     var vw = R.clientWidth || window.innerWidth, all = D.body.querySelectorAll('*');
     for (var i = 0; i < all.length; i++) {
       var el = all[i];
       // Square puts the banner inside the page's <header>, so only the nav bar itself is off limits
-      if (el.closest('nav, a, button, .kc-header, .kc-lb, .kc-card, .kc-tile, .kc-shadow, .kc-band, .kc-veil')) continue;
+      if (el.closest('nav, a, button, [data-kc~="header"], .kc-lb, [data-kc~="card"], [data-kc~="tile"], .kc-shadow, .kc-band, .kc-veil') || has(el, 'grain') || overlay(el)) continue;
       var r = rect(el);
       if (r.width < vw - 6 || r.height < 160 || r.height > window.innerHeight * 1.25 || r.top + window.scrollY > 700) continue;
       if (!/^(IMG|PICTURE|VIDEO)$/.test(el.tagName) && getComputedStyle(el).backgroundImage.indexOf('url(') < 0) continue;
@@ -888,29 +1433,35 @@ html.kc-lock{overflow:hidden}
       heroEl = el;
       heroHost = heroSoft ? el : wrap;
       if (!heroSoft) {
-        wrap.classList.add('kc-hero-wrap');
-        if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
-        if (on('heroAtmosphere')) {
-          atmos = mk('div', 'kc-atmos', '<div class="kc-aurora"></div><div class="kc-vignette"></div>');
-          atmos.setAttribute('aria-hidden', 'true');
-          wrap.appendChild(atmos);
-          fitAtmos();
-        }
+        mark(wrap, 'wrap', HERO);
+        if (getComputedStyle(wrap).position === 'static') mark(wrap, 'rel');
+        if (on('heroAtmosphere')) placeAtmos(wrap);
       }
       // Rest the animations while the banner is off screen
       if ('IntersectionObserver' in window) {
         if (heroIO) heroIO.disconnect();
-        heroIO = new IntersectionObserver(function (e) { heroHost.classList.toggle('kc-hero-rest', !e[0].isIntersecting); });
+        heroIO = new IntersectionObserver(function (e) { if (e[0].isIntersecting) unmark(heroHost, 'rest', HERO); else mark(heroHost, 'rest', HERO); });
         heroIO.observe(heroHost);
       }
       surface(false);
       return;
     }
   }
+  function placeAtmos(wrap) {
+    if (!atmos) {
+      atmos = mk('div', 'kc-atmos', '<div class="kc-aurora"></div><div class="kc-vignette"></div>');
+      atmos.setAttribute('aria-hidden', 'true');
+      atmosT0 = now();
+    }
+    // If Square redraws the banner, the light carries on where it was rather than starting over
+    atmos.style.setProperty('--kc-t', (-(now() - atmosT0) / 1000).toFixed(2) + 's');
+    wrap.appendChild(atmos);
+    fitAtmos();
+  }
 
   // 3. The band under the banner: drifting words (decoration; tap one for its gloss)
   //    above the still index line (the working version, with Begin Here)
-  var bandEl = null, bandTries = 0, bandTimer = 0, H = 'h1, h2, h3, h4', diag = [];
+  var bandEl = null, bandFails = 0, bandTimer = 0, bandT0 = 0, bandShown = false, H = 'h1, h2, h3, h4', diag = [];
   function bandHTML() {
     var out = '';
     if (on('wordBand')) {
@@ -957,17 +1508,16 @@ html.kc-lock{overflow:hidden}
     var box = D.getElementById('kc-diag') || D.body.appendChild(mk('pre'));
     box.id = 'kc-diag';
     box.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;max-height:55vh;overflow:auto;margin:0;padding:10px;background:#fff;color:#111;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;border:2px solid #8B2A24;border-radius:6px';
-    box.textContent = 'KCFOJ debug (v3.1) page ' + location.pathname + '\n' + diag.join('\n');
+    box.textContent = 'KCFOJ debug (v3.1.1) page ' + location.pathname + '\n' + diag.join('\n');
   }
   function band() {
-    if (!heroEl || bandTries >= 12 || (bandEl && D.contains(bandEl))) return;
+    if (!heroEl || bandFails >= 12 || (bandEl && D.contains(bandEl))) return;
     var html = bandHTML();
     if (!html) return;
-    bandTries++;
     strays('.kc-band', bandEl);
-    if (!bandEl) bandEl = mk('div', 'kc-band', html);
-    bandEl.classList.remove('kc-band-in');
+    if (!bandEl) { bandEl = mk('div', 'kc-band', html); bandShown = false; }
     // Measure the banner without its breathing zoom, which makes it look taller than it is
+    self.add(heroEl);
     var ot = heroEl.style.getPropertyValue('transform'), op = heroEl.style.getPropertyPriority('transform');
     heroEl.style.setProperty('transform', 'none', 'important');
     var hb = rect(heroEl).bottom;
@@ -977,7 +1527,7 @@ html.kc-lock{overflow:hidden}
       if (chrome(hs[i]) || rect(hs[i]).height === 0) continue;
       if (rect(hs[i]).top >= hb - 2) { h = hs[i]; break; }
     }
-    diag = ['try ' + bandTries + ' | screen ' + window.innerWidth + 'x' + window.innerHeight,
+    diag = ['try ' + (bandFails + 1) + ' | screen ' + window.innerWidth + 'x' + window.innerHeight,
             'banner: ' + path(heroEl) + ' | bottom ' + Math.round(hb),
             'next heading: ' + (h ? h.tagName + ' "' + h.textContent.trim().slice(0, 32) + '" ' + path(h.parentElement) : 'none found')];
     if (h) {
@@ -993,86 +1543,106 @@ html.kc-lock{overflow:hidden}
         why = bandFits(hb, h, k ? 0.6 : 0.85);
         diag.push((k ? 'loose ' : '') + 'in ' + path(spots[i][0]) + ' -> ' + (why || 'OK'));
         if (!why) {
+          bandFails = 0;
           // Inside a content column (as on phones) it needs air before the heading below it
           bandEl.classList.toggle('kc-band-inset', rect(bandEl).width < (R.clientWidth || window.innerWidth) - 4);
-          if (!still) bandEl.classList.add('kc-band-in');
+          // It fades in the first time only; if Square redraws around it, it simply stays,
+          // and the drifting words carry on from where they were
+          var track = bandEl.querySelector('.kc-band-track');
+          if (!bandShown) {
+            bandShown = true; bandT0 = now();
+            if (!still) bandEl.classList.add('kc-band-in');
+          } else {
+            bandEl.classList.remove('kc-band-in');
+            if (track) track.style.animationDelay = (-(now() - bandT0) / 1000).toFixed(2) + 's';
+          }
           showDiag();
           return;
         }
       }
     }
     if (bandEl.parentNode) bandEl.parentNode.removeChild(bandEl);
+    bandFails++;
     showDiag();
     clearTimeout(bandTimer);
-    if (bandTries < 12) bandTimer = setTimeout(function () { if (window.KCFOJ_wow) window.KCFOJ_wow(); }, 1200);
+    if (bandFails < 12) bandTimer = setTimeout(function () { if (window.KCFOJ_schedule) window.KCFOJ_schedule(); }, 1200);
   }
 
   // 4. The manicule marks the next step: the banner's button, or the main button on an event page
   function hands() {
-    if (!on('manicules')) return;
-    var pick = null, btns = D.querySelectorAll('.kc-btn'), i;
+    if (!on('manicules') || window.KCFOJ_commerce()) return;
+    var pick = null, btns = D.querySelectorAll('[data-kc~="btn"]'), i;
     if (heroEl) {
       var hb = rect(heroEl);
       for (i = 0; i < btns.length && !pick; i++) if (!btns[i].closest('nav') && inside(rect(btns[i]), hb)) pick = btns[i];
     } else if (/^\/product\//.test(location.pathname)) {
-      for (i = 0; i < btns.length && !pick; i++) if (!chrome(btns[i]) && !btns[i].closest('.kc-card') && rect(btns[i]).height) pick = btns[i];
+      for (i = 0; i < btns.length && !pick; i++) if (!chrome(btns[i]) && !overlay(btns[i]) && !btns[i].closest('[data-kc~="card"]') && rect(btns[i]).height) pick = btns[i];
     }
-    if (!pick || pick.dataset.kcHand || pick.tagName === 'INPUT') return;
+    if (!pick || pick.getAttribute('data-kc-hand') || pick.tagName === 'INPUT') return;
     var h0 = rect(pick).height;
-    pick.classList.add('kc-hand');
+    mark(pick, 'hand');
     // If the hand would wrap the button onto two lines, leave it plain
-    if (rect(pick).height > h0 + 3) { pick.classList.remove('kc-hand'); pick.dataset.kcHand = 'no'; }
-    else pick.dataset.kcHand = '1';
+    if (rect(pick).height > h0 + 3) { unmark(pick, 'hand'); pick.setAttribute('data-kc-hand', 'no'); }
+    else pick.setAttribute('data-kc-hand', '1');
   }
 
   // 5. One reveal system for everything you haven't seen yet. Content already on screen is
   //    left alone (so nothing blinks), except under the arrival veil, where it is revealed as the veil lifts.
-  var io = null;
+  var io = null, watching = window.WeakSet ? new WeakSet() : null;
+  function watch(el) { if (watching) watching.add(el); whenClear(function () { io.observe(el); }); }
   if (!still && on('inkReveal') && 'IntersectionObserver' in window) {
     io = new IntersectionObserver(function (ents) {
       var vis = ents.filter(function (e) { return e.isIntersecting; }).map(function (e) { return e.target; });
       vis.sort(function (a, b) { var ra = rect(a), rb = rect(b); return (ra.top - rb.top) || (ra.left - rb.left); });
       vis.forEach(function (el, i) {
         io.unobserve(el);
-        var delay = Math.min(i, 6) * 90;
+        var delay = Math.min(i, 6) * 90, st = el.getAttribute('data-kc-rv') || '';
+        self.add(el);
         el.style.transitionDelay = delay + 'ms';
-        el.classList.add('kc-in');
+        el.setAttribute('data-kc-rv', st === 'wait-h' ? 'in-h' : 'in-b');
         setTimeout(function () {
-          el.classList.remove('kc-rv', 'kc-rv-h', 'kc-in'); el.style.transitionDelay = '';
+          el.setAttribute('data-kc-rv', 'done'); el.style.transitionDelay = '';
           if (window.KCFOJ_relayout) window.KCFOJ_relayout();   // margin notes settle beside the text
         }, 1900 + delay);
       });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.01 });
   }
   function reveal() {
-    if (!io) return;
+    if (!io || window.KCFOJ_commerce()) return;
     var fold = window.innerHeight;
-    var sel = 'h1, h2, h3, iframe, form, .kc-card, .kc-tile' + (on('revealParagraphs') ? ', p' : '');
+    var sel = 'h1, h2, h3, iframe, form, [data-kc~="card"], [data-kc~="tile"]' + (on('revealParagraphs') ? ', p' : '');
     [].forEach.call(D.querySelectorAll(sel), function (el) {
-      if (el.dataset.kcRv || chrome(el)) return;
-      if (!el.classList.contains('kc-card') && el.closest('.kc-card')) return;
-      if (!el.classList.contains('kc-tile') && el.closest('.kc-tile')) return;
+      var was = el.getAttribute('data-kc-rv');
+      if (was !== null) {
+        // A copy Square made of a block that was still waiting is watched too, so it never stays unseen
+        if (watching && /^wait/.test(was) && !watching.has(el)) watch(el);
+        return;
+      }
+      if (chrome(el) || overlay(el)) return;
+      if (!has(el, 'card') && el.closest('[data-kc~="card"]')) return;
+      if (!has(el, 'tile') && el.closest('[data-kc~="tile"]')) return;
       if (el.tagName !== 'FORM' && el.closest('form')) return;
-      if (el.tagName === 'P' && el.closest('li, blockquote, .kc-lex, .kc-tl, .kc-epigraph, .kc-epigraph-by')) return;
+      if (el.closest('[data-kc-hold]')) return;   // a gallery is shown once, already final: its plates never fade in
+      if (el.tagName === 'P' && el.closest('li, blockquote, [data-kc-about]')) return;
       var r = rect(el);
       if (r.height === 0) return;
-      if (r.top < fold && !veilUp) { el.dataset.kcRv = '0'; return; }
-      el.dataset.kcRv = '1';
-      el.classList.add(/^H[12]$/.test(el.tagName) ? 'kc-rv-h' : 'kc-rv');
-      whenClear(function () { io.observe(el); });
+      if (r.top < fold && !veilUp) { el.setAttribute('data-kc-rv', 'skip'); return; }
+      el.setAttribute('data-kc-rv', /^H[12]$/.test(el.tagName) ? 'wait-h' : 'wait-b');
+      watch(el);
     });
   }
 
   // 6. Cards and plates tilt a little under the mouse, like card stock, with a paper sheen
   function tilt() {
-    if (!on('cardTilt') || still || !fine()) return;
-    [].forEach.call(D.querySelectorAll('.kc-card, .kc-tile'), function (t) {
-      if (t.dataset.kcTilt || t.closest('.kc-lb')) return;
-      t.dataset.kcTilt = '1';
-      var plate = t.classList.contains('kc-tile'), ax = plate ? 8 : 4, ay = plate ? 10 : 5, lift = plate ? 6 : 4, grow = plate ? 1.02 : 1;
+    if (!on('cardTilt') || still || !fine() || window.KCFOJ_commerce()) return;
+    [].forEach.call(D.querySelectorAll('[data-kc~="card"], [data-kc~="tile"]'), function (t) {
+      if (t.getAttribute('data-kc-tilt') || t.closest('.kc-lb') || overlay(t)) return;
+      t.setAttribute('data-kc-tilt', '1');
+      self.add(t);
+      var plate = has(t, 'tile'), ax = plate ? 8 : 4, ay = plate ? 10 : 5, lift = plate ? 6 : 4, grow = plate ? 1.02 : 1;
       if (t.tagName !== 'IMG') {
-        if (getComputedStyle(t).position === 'static') t.style.position = 'relative';
-        t.classList.add('kc-sheen');
+        if (getComputedStyle(t).position === 'static') mark(t, 'rel');
+        mark(t, 'sheen');
       }
       var raf = 0, px = 0, py = 0;
       t.addEventListener('pointermove', function (e) {
@@ -1177,16 +1747,15 @@ html.kc-lock{overflow:hidden}
   });
   function gallery() {
     if (!on('plateViewer')) return;
-    [].forEach.call(D.querySelectorAll('.kc-tile'), function (t) {
-      if (t.dataset.kcG || t.closest('.kc-lb')) return;
-      t.dataset.kcG = '1';
-      t.style.cursor = 'zoom-in';
+    [].forEach.call(D.querySelectorAll('[data-kc~="tile"]'), function (t) {
+      if (t.getAttribute('data-kc-g') || t.closest('.kc-lb') || overlay(t)) return;
+      t.setAttribute('data-kc-g', '1');
       if (!t.hasAttribute('tabindex') && !t.closest('a, button')) { t.setAttribute('tabindex', '0'); t.setAttribute('role', 'button'); t.setAttribute('aria-label', 'Open plate'); }
       function open(e) {
         var a = t.closest('a[href]');
         if (a && !/^(#|javascript)/i.test(a.getAttribute('href'))) return;
         e.preventDefault(); e.stopPropagation();
-        var list = [].slice.call(D.querySelectorAll('.kc-tile'));
+        var list = [].slice.call(D.querySelectorAll('[data-kc~="tile"]'));
         lbOpen(list, list.indexOf(t), t);
       }
       t.addEventListener('click', open);
@@ -1195,77 +1764,107 @@ html.kc-lock{overflow:hidden}
   }
 
   // 8. The night page: a dark band where a candle follows your cursor, or your scroll,
-  //    lighting the quote and a mandala hidden in the leather
-  var shadowEl = null;
+  //    lighting the quote and a mandala hidden in the leather. Its measurements are taken
+  //    once and kept; on a touch screen it only moves when you scroll or touch, and rests
+  //    once it arrives.
+  var shadowEl = null, lanternDirty = function () {}, lanternNow = null;
+  listen('scroll', function () { if (lanternNow) lanternNow.scroll(); });
+  listen('resize', function () { if (lanternNow) lanternNow.resize(); });
+  function lanternStop() { if (lanternNow) lanternNow.stop(); lanternNow = null; lanternDirty = function () {}; }
   function lantern(sec) {
     var q = sec.querySelector('.kc-shadow-q'), art = sec.querySelector('.kc-night-art');
+    lanternStop();
     if (still || !on('shadowLight')) { sec.classList.add('kc-lit'); return; }
     var mouse = fine();
-    var x = 0.3, y = 0.5, tx = 0.3, ty = 0.5, inside2 = false, live = false, raf = 0, rr = 150;
+    var x = 0.3, y = 0.5, tx = 0.3, ty = 0.5, rr = 150, rt = 150, inside2 = false, live = false, raf = 0, G = null;
+    function measure() {
+      var r = rect(sec), rq = rect(q), sx = window.pageXOffset, sy = window.pageYOffset;
+      G = { left: r.left + sx, top: r.top + sy, w: r.width || 1, h: r.height || 1, ql: rq.left - r.left, qt: rq.top - r.top, qw: rq.width, qh: rq.height, al: 0, at: 0 };
+      if (art) { var ra = rect(art); G.al = ra.left - r.left; G.at = ra.top - r.top; }
+    }
+    lanternDirty = function () { G = null; wake(); };
+    function wake() { if (live && !raf) raf = requestAnimationFrame(tick); }
     function tick(t) {
-      if (!D.contains(sec)) { raf = 0; return; }
-      var r = rect(sec), rq = rect(q), vh = window.innerHeight;
-      var base = Math.max(140, Math.min(260, window.innerWidth * 0.22)), rt = base;
+      raf = 0;
+      if (!D.contains(sec)) return;
+      if (!G) measure();
+      var vh = window.innerHeight, top = G.top - window.pageYOffset;
+      var base = Math.max(140, Math.min(260, window.innerWidth * 0.22));
+      rt = base;
       if (!inside2) {
-        var p = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)));
-        tx = 0.14 + 0.72 * p + 0.05 * Math.sin(t / 1300);
-        ty = 0.5 + 0.16 * Math.sin(p * Math.PI * 2 + t / 2100);
-        if (!mouse) {
+        var p = Math.min(1, Math.max(0, (vh - top) / (vh + G.h)));
+        if (mouse) {
+          tx = 0.14 + 0.72 * p + 0.05 * Math.sin(t / 1300);
+          ty = 0.5 + 0.16 * Math.sin(p * Math.PI * 2 + t / 2100);
+        } else {
+          tx = 0.14 + 0.72 * p;
+          ty = 0.5 + 0.16 * Math.sin(p * Math.PI * 2);
           // 1 when the quote sits mid-screen, easing to 0 as it moves away
-          var mid = (rq.top + rq.height / 2) / vh, near = Math.max(0, 1 - Math.abs(mid - 0.5) / 0.32);
+          var mid = (top + G.qt + G.qh / 2) / vh, near = Math.max(0, 1 - Math.abs(mid - 0.5) / 0.32);
           near = near * near * (3 - 2 * near);
-          var qx = (rq.left - r.left + rq.width / 2) / r.width, qy = (rq.top - r.top + rq.height / 2) / r.height;
+          var qx = (G.ql + G.qw / 2) / G.w, qy = (G.qt + G.qh / 2) / G.h;
           tx += (qx - tx) * near; ty += (qy - ty) * near;
-          rt = base + (Math.hypot(rq.width, rq.height) / 2 / 0.4 - base) * near;
+          rt = base + (Math.hypot(G.qw, G.qh) / 2 / 0.4 - base) * near;
         }
       }
       var k = inside2 ? 0.2 : 0.07;
       x += (tx - x) * k; y += (ty - y) * k; rr += (rt - rr) * 0.08;
-      var px = x * r.width, py = y * r.height;
+      var px = x * G.w, py = y * G.h;
       sec.style.setProperty('--kc-r', Math.round(rr) + 'px');
       sec.style.setProperty('--x', px.toFixed(1) + 'px');
       sec.style.setProperty('--y', py.toFixed(1) + 'px');
-      q.style.setProperty('--qx', (px - (rq.left - r.left)).toFixed(1) + 'px');
-      q.style.setProperty('--qy', (py - (rq.top - r.top)).toFixed(1) + 'px');
+      q.style.setProperty('--qx', (px - G.ql).toFixed(1) + 'px');
+      q.style.setProperty('--qy', (py - G.qt).toFixed(1) + 'px');
       if (art) {
-        var ra = rect(art);
-        art.style.setProperty('--ax', (px - (ra.left - r.left)).toFixed(1) + 'px');
-        art.style.setProperty('--ay', (py - (ra.top - r.top)).toFixed(1) + 'px');
+        art.style.setProperty('--ax', (px - G.al).toFixed(1) + 'px');
+        art.style.setProperty('--ay', (py - G.at).toFixed(1) + 'px');
       }
-      raf = live ? requestAnimationFrame(tick) : 0;
+      // A mouse keeps the candle gently drifting while it is in view; elsewhere it rests once it arrives
+      var moving = Math.abs(tx - x) > 0.0006 || Math.abs(ty - y) > 0.0006 || Math.abs(rt - rr) > 0.6;
+      if (live && (mouse || inside2 || moving)) raf = requestAnimationFrame(tick);
     }
+    var io = null, ro = null;
     if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (e) {
-        live = e[0].isIntersecting;
-        if (live && !raf) raf = requestAnimationFrame(tick);
-      }).observe(sec);
+      io = new IntersectionObserver(function (e) {
+        live = e[e.length - 1].isIntersecting;
+        if (live) { G = null; wake(); }
+      });
+      io.observe(sec);
     } else { sec.classList.add('kc-lit'); }
+    if (window.ResizeObserver) { ro = new ResizeObserver(function () { G = null; wake(); }); ro.observe(sec); }
+    lanternNow = {
+      scroll: function () { if (live) { if (!mouse) sec.classList.add('kc-used'); wake(); } },
+      resize: function () { G = null; wake(); },
+      stop: function () { live = false; if (raf) cancelAnimationFrame(raf); raf = 0; if (io) io.disconnect(); if (ro) ro.disconnect(); }
+    };
+    function spot(cx, cy) {
+      if (!G) measure();
+      tx = (cx + window.pageXOffset - G.left) / G.w; ty = (cy + window.pageYOffset - G.top) / G.h;
+    }
     // A mouse carries the candle directly. On phones it follows the scroll and settles on the
     // quote, and a finger can carry it too. Whichever is actually used decides.
     sec.addEventListener('pointermove', function (e) {
       if (e.pointerType && e.pointerType !== 'mouse') return;
-      var r = rect(sec);
       mouse = true; inside2 = true; sec.classList.add('kc-used');
-      tx = (e.clientX - r.left) / r.width; ty = (e.clientY - r.top) / r.height;
+      spot(e.clientX, e.clientY); wake();
     });
-    sec.addEventListener('pointerleave', function (e) { if (!e.pointerType || e.pointerType === 'mouse') inside2 = false; });
-    listen('scroll', function () { if (live && !mouse) sec.classList.add('kc-used'); });
+    sec.addEventListener('pointerleave', function (e) { if (!e.pointerType || e.pointerType === 'mouse') { inside2 = false; wake(); } });
     var touch = function (e) {
-      var r = rect(sec), tp = e.touches[0];
+      var tp = e.touches[0];
       if (!tp) return;
       mouse = false; inside2 = true; sec.classList.add('kc-used');
-      tx = (tp.clientX - r.left) / r.width; ty = (tp.clientY - r.top) / r.height;
+      spot(tp.clientX, tp.clientY); wake();
     };
     sec.addEventListener('touchstart', touch, { passive: true });
     sec.addEventListener('touchmove', touch, { passive: true });
-    sec.addEventListener('touchend', function () { inside2 = false; }, { passive: true });
-    sec.addEventListener('touchcancel', function () { inside2 = false; }, { passive: true });
+    sec.addEventListener('touchend', function () { inside2 = false; wake(); }, { passive: true });
+    sec.addEventListener('touchcancel', function () { inside2 = false; wake(); }, { passive: true });
   }
   function shadow() {
     if (shadowEl && D.contains(shadowEl)) return;
     var hs = D.querySelectorAll('h1, h2, h3'), anchor = null;
     for (var i = 0; i < hs.length; i++) {
-      if (/contact/i.test(hs[i].textContent) && !chrome(hs[i])) { anchor = sectionOf(hs[i]); break; }
+      if (/contact/i.test(hs[i].textContent) && !chrome(hs[i]) && !overlay(hs[i])) { anchor = sectionOf(hs[i]); break; }
     }
     if (!anchor) return;
     strays('.kc-shadow', null);
@@ -1301,16 +1900,15 @@ html.kc-lock{overflow:hidden}
     var first = lastPath === null;
     lastPath = location.pathname;
     if (!first) arrival = false;
-    if (heroEl) heroEl.classList.remove('kc-hero-toned', 'kc-hero-pre', 'kc-hero-rise', 'kc-hero-breathe', 'kc-hero-soft');
     heroEl = null; heroSoft = false;
     if (heroIO) { heroIO.disconnect(); heroIO = null; }
+    [].forEach.call(D.querySelectorAll('[' + HERO + ']'), clearHero);
     [].forEach.call(D.querySelectorAll('.kc-atmos'), function (x) { x.parentNode.removeChild(x); });
     atmos = null;
-    [].forEach.call(D.querySelectorAll('.kc-hero-wrap, .kc-hero-rest'), function (x) { x.classList.remove('kc-hero-wrap', 'kc-hero-rest'); });
     if (bandEl && bandEl.parentNode) bandEl.parentNode.removeChild(bandEl);
-    bandEl = null; bandTries = 0; clearTimeout(bandTimer);
+    bandEl = null; bandFails = 0; bandShown = false; clearTimeout(bandTimer);
     if (shadowEl && shadowEl.parentNode) shadowEl.parentNode.removeChild(shadowEl);
-    shadowEl = null;
+    shadowEl = null; lanternStop();
   }
   window.KCFOJ_wow = function () {
     if (!D.body) return;
@@ -1320,11 +1918,20 @@ html.kc-lock{overflow:hidden}
       if (!f) return;
       try { f(); } catch (e) { if (window.console) console.warn('KCFOJ book:', e); }
     });
+    // Anything that moved the page may have moved the night page too
+    lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.1',
+    version: '3.1.1',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
-    stats: function () { return window.KCFOJ_stats; }
+    stats: function () {
+      var s = window.KCFOJ_stats || {}, out = {};
+      for (var k in s) out[k] = typeof s[k] === 'number' ? Math.round(s[k] * 10) / 10 : s[k];
+      out.cover = R.classList.contains('kc-cover') ? 'on' : (R.classList.contains('kc-boot') ? 'lifted' : 'no boot block');
+      out.heldGalleries = D.querySelectorAll('[data-kc-hold="1"]').length;
+      out.folios = D.querySelectorAll('[data-kc-f~="box"]').length;
+      return out;
+    }
   };
 })();
 
@@ -1334,22 +1941,20 @@ html.kc-lock{overflow:hidden}
    rubric ornament beneath it: two gold rules and a red star. The first long
    paragraph after a heading opens with an illuminated initial. */
 (function () {
-  var D = document, on = window.KCFOJ_on || function () { return true; };
+  var D = document, on = window.KCFOJ_on || function () { return true; }, mark = window.KCFOJ_mark;
   var roman = window.KCFOJ_roman || function (n) { return String(n); };
   var STAR = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0L7.6 4.4 12 6 7.6 7.6 6 12 4.4 7.6 0 6 4.4 4.4z' fill='%238B2A24'/%3E%3C/svg%3E\")";
   var css = `
-.kc-initial::first-letter{float:left;font-family:var(--kc-versal);font-weight:400;font-style:normal;font-size:3.6em;line-height:.82;color:var(--kc-accent);padding:.1em .12em .03em;margin:.06em .16em 0 0;border:1px solid rgba(168,132,79,.75);background:rgba(139,42,36,.05)}
-.kc-numeral::before{content:attr(data-kc-no);display:block;width:max-content;margin:0 auto .8em;padding:0 44px;font:500 12px/1 var(--kc-serif);font-style:normal;letter-spacing:.32em;text-indent:.32em;text-transform:none;color:var(--kc-accent);background:linear-gradient(var(--kc-accent),var(--kc-accent)) left center/30px 1px no-repeat,linear-gradient(var(--kc-accent),var(--kc-accent)) right center/30px 1px no-repeat}
-.kc-numeral.kc-rubric-left::before{margin-left:0;padding-left:0;text-indent:0;background:linear-gradient(var(--kc-accent),var(--kc-accent)) right center/30px 1px no-repeat}
-.kc-numeral[data-kc-no="\\00B6"]::before{font-size:15px;letter-spacing:0;text-indent:0}
-.kc-ornament::after{content:"";display:block;width:clamp(110px,16vw,150px);height:12px;margin:.55em auto 0;background:linear-gradient(var(--kc-gold),var(--kc-gold)) left center/calc(50% - 15px) 1px no-repeat,linear-gradient(var(--kc-gold),var(--kc-gold)) right center/calc(50% - 15px) 1px no-repeat,${STAR} center/10px 10px no-repeat}
-.kc-ornament.kc-rubric-left::after{margin-left:0}
+[data-kc-initial="1"]::first-letter{float:left;font-family:var(--kc-versal);font-weight:400;font-style:normal;font-size:3.6em;line-height:.82;color:var(--kc-accent);padding:.1em .12em .03em;margin:.06em .16em 0 0;border:1px solid rgba(168,132,79,.75);background:rgba(139,42,36,.05)}
+[data-kc-r~="num"]::before{content:attr(data-kc-no);display:block;width:max-content;margin:0 auto .8em;padding:0 44px;font:500 12px/1 var(--kc-serif);font-style:normal;letter-spacing:.32em;text-indent:.32em;text-transform:none;color:var(--kc-accent);background:linear-gradient(var(--kc-accent),var(--kc-accent)) left center/30px 1px no-repeat,linear-gradient(var(--kc-accent),var(--kc-accent)) right center/30px 1px no-repeat}
+[data-kc-r~="num"][data-kc-r~="left"]::before{margin-left:0;padding-left:0;text-indent:0;background:linear-gradient(var(--kc-accent),var(--kc-accent)) right center/30px 1px no-repeat}
+[data-kc-r~="num"][data-kc-no="\\00B6"]::before{font-size:15px;letter-spacing:0;text-indent:0}
+[data-kc-r~="orn"]::after{content:"";display:block;width:clamp(110px,16vw,150px);height:12px;margin:.55em auto 0;background:linear-gradient(var(--kc-gold),var(--kc-gold)) left center/calc(50% - 15px) 1px no-repeat,linear-gradient(var(--kc-gold),var(--kc-gold)) right center/calc(50% - 15px) 1px no-repeat,${STAR} center/10px 10px no-repeat}
+[data-kc-r~="orn"][data-kc-r~="left"]::after{margin-left:0}
 `;
-  var tag = D.createElement('style');
-  tag.textContent = css;
-  (D.head || D.documentElement).appendChild(tag);
+  window.KCFOJ_style(css, 'initials');
 
-  function skip(el) { return !!el.closest('header, footer, nav, form, blockquote, li, a, button, .kc-lb, .kc-band, .kc-shadow, .kc-footer, .kc-header, .kc-card, .kc-margin, .kc-def, .kc-colophon, .kc-lex, .kc-veil'); }
+  function skip(el) { return !!el.closest('header, footer, nav, form, blockquote, li, a, button, .kc-lb, .kc-band, .kc-shadow, [data-kc~="footer"], [data-kc~="header"], [data-kc~="card"], .kc-margin, .kc-def, .kc-colophon, [data-kc-about="lex"], .kc-veil, ' + window.KCFOJ_DIALOGS); }
   function left(el) { return /^(left|start|justify)$/.test(getComputedStyle(el).textAlign); }
   function fontOnce() {
     if (D.getElementById('kc-initial-font')) return;
@@ -1360,23 +1965,23 @@ html.kc-lock{overflow:hidden}
   }
 
   function illuminate() {
+    if (window.KCFOJ_commerce()) return;
     var n = 0, nums = on('chapterNumerals'), orns = on('rubricOrnaments');
     if (nums || orns) {
       [].forEach.call(D.querySelectorAll('h1, h2, h3'), function (h) {
         if (skip(h)) return;
-        if (!h.dataset.kcRubric) {
+        if (!h.hasAttribute('data-kc-r')) {
           var s = getComputedStyle(h), t = h.textContent.trim();
           if (parseFloat(s.fontSize) < 28 || t.length < 2 || t.length > 60 || /^(right|end)$/.test(s.textAlign)) return;
-          h.dataset.kcRubric = '1';
-          h.classList.add('kc-rubric');
-          if (left(h)) h.classList.add('kc-rubric-left');
-          if (nums) h.classList.add('kc-numeral');
+          mark(h, 'rubric', 'data-kc-r');
+          if (left(h)) mark(h, 'left', 'data-kc-r');
+          if (nums) mark(h, 'num', 'data-kc-r');
           // The ornament goes under section headings (not page titles), as in v2.6
-          if (orns && h.tagName !== 'H1') h.classList.add('kc-ornament');
+          if (orns && h.tagName !== 'H1') mark(h, 'orn', 'data-kc-r');
         }
-        if (!nums) return;
-        var mark = h.tagName === 'H2' ? roman(++n) : '\u00B6';
-        if (h.getAttribute('data-kc-no') !== mark) h.setAttribute('data-kc-no', mark);
+        if (!nums || !/(^| )rubric( |$)/.test(h.getAttribute('data-kc-r') || '')) return;
+        var no = h.tagName === 'H2' ? roman(++n) : '\u00B6';
+        if (h.getAttribute('data-kc-no') !== no) h.setAttribute('data-kc-no', no);
       });
     }
     if (!on('initials')) return;
@@ -1385,11 +1990,10 @@ html.kc-lock{overflow:hidden}
     [].forEach.call(D.querySelectorAll('h1, h2, h3, h4, p'), function (el) {
       if (skip(el)) return;
       if (el.tagName !== 'P') { armed = true; return; }
-      if (!armed || el.dataset.kcInitial) { if (el.dataset.kcInitial) armed = false; return; }
+      if (!armed || el.hasAttribute('data-kc-initial')) { if (el.hasAttribute('data-kc-initial')) armed = false; return; }
       var t = el.textContent.trim();
       if (t.length < 160 || !/^[A-Za-z]/.test(t) || !left(el)) return;
-      el.dataset.kcInitial = '1';
-      el.classList.add('kc-initial');
+      el.setAttribute('data-kc-initial', '1');
       armed = false;
       fontOnce();
     });
@@ -1438,9 +2042,7 @@ html.kc-lock{overflow:hidden}
 .kc-still .kc-compass,.kc-still .kc-compass *{transition:none!important}
 @media print{.kc-compass{display:none}}
 `;
- var tag = D.createElement('style');
- tag.textContent = css;
- (D.head || R).appendChild(tag);
+ window.KCFOJ_style(css, 'compass');
  var HAND = 'M1 4.6H5.6V15.4H1Z M6.8 5.4C9.2 4.6 12.2 4.1 15.4 4.3L29 5.7C30.9 5.9 30.9 8.9 29 9.1L18.6 9.3C21 9.5 21.2 12.3 18.7 12.6C20.9 13 20.9 15.5 18.5 15.7C20 16.2 19.6 18.3 17.3 18.3L12 18.1C9.9 18 8.3 17.2 6.8 15.9Z';
  // v2.6's compass mandala, drawn inside the ring: twelve petals, an inner ring, a star
  function shapes() {
@@ -1506,7 +2108,7 @@ html.kc-lock{overflow:hidden}
    ticking = false;
    if (!D.contains(btn)) return;
    var w = where();
-   var show = w.p >= 0 && w.top > 140 && !D.querySelector('.kc-veil:not(.kc-go)');
+   var show = w.p >= 0 && w.top > 140 && !D.querySelector('.kc-veil:not(.kc-go)') && !window.KCFOJ_commerce();
    if (show !== btn.classList.contains('kc-on')) {
      btn.classList.toggle('kc-on', show);
      btn.setAttribute('aria-hidden', show ? 'false' : 'true');
@@ -1540,7 +2142,7 @@ html.kc-lock{overflow:hidden}
   A date seal on the corner of each event photo: weekday, a large rubric
   day number and the month in small capitals, framed in gold. */
 (function () {
- var D = document, on = window.KCFOJ_on || function () { return true; };
+ var D = document, on = window.KCFOJ_on || function () { return true; }, mark = window.KCFOJ_mark;
  var HIDE_PILL = true; // false keeps Square's own date pill under the photo as well
  var css = `
 .kc-seal{position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;min-width:62px;padding:7px 9px 8px;background:var(--kc-card);border:1px solid var(--kc-gold);box-shadow:inset 0 0 0 3px var(--kc-card),inset 0 0 0 4px rgba(168,132,79,.5),0 12px 26px -12px rgba(20,12,10,.6);color:var(--kc-ink);text-align:center;pointer-events:none;transform-origin:50% 60%;transition:transform .5s var(--kc-e)}
@@ -1548,14 +2150,12 @@ html.kc-lock{overflow:hidden}
 .kc-seal-day{font:400 34px/.95 var(--kc-serif);font-variant-numeric:lining-nums;color:var(--kc-accent)}
 .kc-seal-mo{font:500 11px/1 var(--kc-serif);letter-spacing:.2em;text-transform:uppercase;margin-top:5px;padding:5px 0 0 .2em;border-top:1px solid rgba(168,132,79,.6)}
 @media (max-width:600px){.kc-seal{min-width:56px;padding:6px 8px 7px}.kc-seal-day{font-size:30px}}
-@media (hover:hover){.kc-card:hover .kc-seal{transform:rotate(-3deg) scale(1.03)}}
+@media (hover:hover){[data-kc~="card"]:hover .kc-seal{transform:rotate(-3deg) scale(1.03)}}
 .kc-still .kc-seal{transition:none}
-.kc-still .kc-card:hover .kc-seal{transform:none}
-.kc-seal-src{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
+.kc-still [data-kc~="card"]:hover .kc-seal{transform:none}
+[data-kc~="sealsrc"]{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
 `;
- var tag = D.createElement('style');
- tag.textContent = css;
- (D.head || D.documentElement).appendChild(tag);
+ window.KCFOJ_style(css, 'seals');
  var MO = { jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr', may: 'May', jun: 'June', jul: 'July', aug: 'Aug', sep: 'Sept', oct: 'Oct', nov: 'Nov', dec: 'Dec' };
  var WD = '(mon|tue|wed|thu|fri|sat|sun)[a-z]*\\.?,?\\s+', MN = '(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?';
  var A = new RegExp('^(?:' + WD + ')?' + MN + '\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b', 'i');   // "FRI, SEP 25"
@@ -1567,7 +2167,10 @@ html.kc-lock{overflow:hidden}
    if (m) p = { wd: m[1], mo: m[2], d: m[3] };
    else if ((m = t.match(B))) p = { wd: m[1], d: m[2], mo: m[3] };
    if (!p || +p.d < 1 || +p.d > 31) return null;
-   p.only = /^[\s,.]*(\d{4})?[\s,.]*$/.test(t.slice(m[0].length));
+   var rest = t.slice(m[0].length);
+   p.only = /^[\s,.]*(\d{4})?[\s,.]*$/.test(rest);
+   var y = rest.match(/^[\s,.]*(\d{4})\b/);
+   p.y = y ? +y[1] : null;             // a year written right after the date, as in "Oct 8, 2026"
    return p;
  }
  function photoIn(card) {
@@ -1587,11 +2190,11 @@ html.kc-lock{overflow:hidden}
  }
  function seals() {
    if (!on('dateSeals')) return;
-   [].forEach.call(D.querySelectorAll('.kc-card'), function (card) {
+   [].forEach.call(D.querySelectorAll('[data-kc~="card"]'), function (card) {
      var s = card.querySelector('.kc-seal');
      if (s && s._kc) { place(s); return; }
-     if (card.dataset.kcSeal && !s) delete card.dataset.kcSeal;
-     if (card.dataset.kcSeal) return;
+     if (card.getAttribute('data-kc-seal') && !s) card.removeAttribute('data-kc-seal');
+     if (card.getAttribute('data-kc-seal')) return;
      var photo = photoIn(card);
      if (!photo) return;
      var leaves = card.querySelectorAll('*'), src = null, p = null;
@@ -1599,9 +2202,9 @@ html.kc-lock{overflow:hidden}
        if (leaves[i].childElementCount === 0 && (p = parse(leaves[i].textContent))) src = leaves[i];
      }
      if (!p) return;
-     card.dataset.kcSeal = '1';
+     card.setAttribute('data-kc-seal', '1');
      var anchor = /^(IMG|PICTURE|VIDEO)$/.test(photo.tagName) ? photo.parentElement : photo;
-     if (getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
+     if (getComputedStyle(anchor).position === 'static') mark(anchor, 'rel');
      s = D.createElement('div');
      s.className = 'kc-seal';
      s.setAttribute('aria-hidden', 'true');
@@ -1609,11 +2212,12 @@ html.kc-lock{overflow:hidden}
      if (p.wd) s.querySelector('.kc-seal-wd').textContent = p.wd.slice(0, 3);
      s.querySelector('.kc-seal-day').textContent = String(+p.d);
      s.querySelector('.kc-seal-mo').textContent = MO[p.mo.slice(0, 3).toLowerCase()];
-     s._kc = { anchor: anchor, photo: photo };
+     // The parsed date travels with the seal, for the ribbon in Part 10
+     s._kc = { anchor: anchor, photo: photo, card: card, p: p, src: src };
      anchor.appendChild(s);
      place(s);
      // The pill's text stays readable to screen readers; only its look is folded into the seal
-     if (HIDE_PILL && p.only) (src.closest('.kc-pill') || src).classList.add('kc-seal-src');
+     if (HIDE_PILL && p.only) mark(src.closest('[data-kc~="pill"]') || src, 'sealsrc');
    });
  }
  var prev = window.KCFOJ_wow;
@@ -1635,29 +2239,28 @@ html.kc-lock{overflow:hidden}
      gets an anchor (#kc-shadow), so a Lexicon page built this way can be
      linked from the margin notes: set lexiconUrl in Part 0. */
 (function () {
- var D = document;
+ var D = document, mark = window.KCFOJ_mark;
+ var EPI = '[data-kc-about="epi"]', BY = '[data-kc-about="by"]', TL = '[data-kc-about="tl"]', LEX = '[data-kc-about="lex"]';
  var css = `
-.kc-epigraph{max-width:30em!important;margin:0 auto 1.2em!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;text-align:center!important;font:italic 400 clamp(20px,2.4vw,26px)/1.45 var(--kc-serif)!important;color:var(--kc-ink)!important;text-wrap:balance}
-.kc-epigraph *{font:inherit!important;text-align:inherit!important;color:inherit!important;margin:0!important}
-.kc-epigraph::before{content:"\\2766";display:block;margin:0 auto .5em;font:normal 16px/1 var(--kc-serif);color:var(--kc-accent)}
-.kc-epigraph-by{text-align:center!important;margin:0 auto 2.4em!important;font:400 11px/1.4 var(--kc-mono)!important;letter-spacing:.28em!important;text-transform:uppercase;color:var(--kc-accent)!important}
-.kc-tl-list{list-style:none!important;padding-left:0!important;margin-left:0!important}
-.kc-tl{position:relative;list-style:none!important;min-height:2.6em;margin:0!important;padding:.55em 0 .55em 104px!important;text-align:left!important}
-.kc-tl::before{content:"";position:absolute;left:86px;top:0;bottom:0;width:1px;background:rgba(168,132,79,.55)}
-.kc-tl::after{content:"";position:absolute;left:82px;top:1.05em;width:9px;height:9px;background:var(--kc-accent);transform:rotate(45deg);box-shadow:0 0 0 3px var(--kc-cream)}
+${EPI}{max-width:30em!important;margin:0 auto 1.2em!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;text-align:center!important;font:italic 400 clamp(20px,2.4vw,26px)/1.45 var(--kc-serif)!important;color:var(--kc-ink)!important;text-wrap:balance}
+${EPI} *{font:inherit!important;text-align:inherit!important;color:inherit!important;margin:0!important}
+${EPI}::before{content:"\\2766";display:block;margin:0 auto .5em;font:normal 16px/1 var(--kc-serif);color:var(--kc-accent)}
+${BY}{text-align:center!important;margin:0 auto 2.4em!important;font:400 11px/1.4 var(--kc-mono)!important;letter-spacing:.28em!important;text-transform:uppercase;color:var(--kc-accent)!important}
+[data-kc~="tllist"]{list-style:none!important;padding-left:0!important;margin-left:0!important}
+${TL}{position:relative;list-style:none!important;min-height:2.6em;margin:0!important;padding:.55em 0 .55em 104px!important;text-align:left!important}
+${TL}::before{content:"";position:absolute;left:86px;top:0;bottom:0;width:1px;background:rgba(168,132,79,.55)}
+${TL}::after{content:"";position:absolute;left:82px;top:1.05em;width:9px;height:9px;background:var(--kc-accent);transform:rotate(45deg);box-shadow:0 0 0 3px var(--kc-cream)}
 .kc-tl-year{position:absolute;left:0;top:.45em;width:70px;text-align:right;font:400 1.3em/1.25 var(--kc-serif);font-variant-numeric:lining-nums tabular-nums;color:var(--kc-accent)}
-.kc-lex{position:relative;min-height:2.9em;margin:0!important;padding:.8em 0 .8em 172px!important;border-bottom:1px solid rgba(168,132,79,.35);text-align:left!important;scroll-margin-top:120px}
-.kc-lex:target{background:rgba(139,42,36,.05)}
+${LEX}{position:relative;min-height:2.9em;margin:0!important;padding:.8em 0 .8em 172px!important;border-bottom:1px solid rgba(168,132,79,.35);text-align:left!important;scroll-margin-top:120px}
+${LEX}:target{background:rgba(139,42,36,.05)}
 .kc-lex-term{position:absolute;left:0;top:.62em;width:152px;font:italic 400 1.15em/1.3 var(--kc-serif);color:var(--kc-accent)}
-@media (max-width:600px){.kc-tl{padding-left:80px!important}.kc-tl::before{left:64px}.kc-tl::after{left:60px}.kc-tl-year{width:52px;font-size:1.1em}.kc-lex{padding-left:0!important}.kc-lex-term{position:static;display:block;width:auto;margin-bottom:.2em}}
+@media (max-width:600px){${TL}{padding-left:80px!important}${TL}::before{left:64px}${TL}::after{left:60px}.kc-tl-year{width:52px;font-size:1.1em}${LEX}{padding-left:0!important}.kc-lex-term{position:static;display:block;width:auto;margin-bottom:.2em}}
 `;
- var tag = D.createElement('style');
- tag.textContent = css;
- (D.head || D.documentElement).appendChild(tag);
+ window.KCFOJ_style(css, 'about');
  var YEAR = /^((?:1[89]|20)\d0s|(?:1[89]|20)\d\d)\s*[\u00B7\u2022:|\-\u2013\u2014]\s*(?=\S)/;
  var TERM = /^([A-Z][A-Za-z'\-]*(?:\s+[A-Za-z'\-]+){0,3})\s*(?::|\s[\-\u2013\u2014])\s+(?=\S)/;
  var QUOTED = /^["\u201C\u2018'][\s\S]{8,}["\u201D\u2019']$/;
- function skip(el) { return !!el.closest('header, footer, nav, form, .kc-card, .kc-shadow, .kc-band, .kc-lb, .kc-seal, .kc-margin, .kc-def, .kc-colophon, .kc-veil'); }
+ function skip(el) { return !!el.closest('header, footer, nav, form, [data-kc~="card"], .kc-shadow, .kc-band, .kc-lb, .kc-seal, .kc-margin, .kc-def, .kc-colophon, .kc-veil, ' + window.KCFOJ_DIALOGS); }
  function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
  // Removes the first n characters of an element's text, across any bold or italic wrappers
  function peel(el, n) {
@@ -1679,41 +2282,38 @@ html.kc-lock{overflow:hidden}
    return m[1];
  }
  function about() {
+   if (window.KCFOJ_commerce()) return;
    var els = [].filter.call(D.querySelectorAll('h1, h2, h3, h4, p, li, blockquote'), function (el) { return !skip(el) && el.textContent.trim(); });
    var mode = null;
    els.forEach(function (el, i) {
-     if (el.closest('.kc-epigraph') && !el.classList.contains('kc-epigraph')) return;
-     var t = el.textContent.trim(), k = el.dataset.kcAbout;
+     if (el.closest(EPI) && el.getAttribute('data-kc-about') !== 'epi') return;
+     var t = el.textContent.trim(), k = el.getAttribute('data-kc-about') || '';
      // Square sometimes redraws text; if our label went missing, set the line up again
-     if (k === 'tl' && !el.querySelector('.kc-tl-year')) k = el.dataset.kcAbout = '';
-     if (k === 'lex' && !el.querySelector('.kc-lex-term')) k = el.dataset.kcAbout = '';
+     if (k === 'tl' && !el.querySelector('.kc-tl-year')) { el.removeAttribute('data-kc-about'); k = ''; }
+     if (k === 'lex' && !el.querySelector('.kc-lex-term')) { el.removeAttribute('data-kc-about'); k = ''; }
      if (/^H[1-4]$/.test(el.tagName)) {
        mode = /vocabulary|lexicon|glossary/i.test(t) ? 'lex' : /began|history|decades|years|timeline|milestones/i.test(t) ? 'tl' : null;
        return;
      }
      if (k) return;
      if (mode === 'tl' && label(el, YEAR, 'kc-tl-year')) {
-       el.dataset.kcAbout = 'tl';
-       el.classList.add('kc-tl');
-       if (el.tagName === 'LI' && el.parentElement) el.parentElement.classList.add('kc-tl-list');
+       el.setAttribute('data-kc-about', 'tl');
+       if (el.tagName === 'LI' && el.parentElement) mark(el.parentElement, 'tllist');
        return;
      }
      var term = mode === 'lex' && t.length > 12 && label(el, TERM, 'kc-lex-term');
      if (term) {
-       el.dataset.kcAbout = 'lex';
-       el.dataset.kcInitial = 'skip';          // keeps Part 4 from giving a definition an initial
-       el.classList.remove('kc-initial');
-       el.classList.add('kc-lex');
+       el.setAttribute('data-kc-about', 'lex');
+       el.setAttribute('data-kc-initial', 'skip');   // keeps Part 4 from giving a definition an initial
        if (!el.id) el.id = 'kc-' + slug(term);
        return;
      }
      var next = null;
      for (var j = i + 1; j < els.length && !next; j++) if (!el.contains(els[j])) next = els[j];
-     var byLine = next && !/^H[1-4]$/.test(next.tagName) && !next.dataset.kcAbout && next.textContent.trim().length <= 48;
+     var byLine = next && !/^H[1-4]$/.test(next.tagName) && !next.getAttribute('data-kc-about') && next.textContent.trim().length <= 48;
      if (t.length <= 220 && (el.tagName === 'BLOCKQUOTE' || (QUOTED.test(t) && byLine))) {
-       el.dataset.kcAbout = 'epi';
-       el.classList.add('kc-epigraph');
-       if (byLine) { next.dataset.kcAbout = 'by'; next.classList.add('kc-epigraph-by'); }
+       el.setAttribute('data-kc-about', 'epi');
+       if (byLine) next.setAttribute('data-kc-about', 'by');
      }
    });
  }
@@ -1738,12 +2338,7 @@ html.kc-lock{overflow:hidden}
    'When an inner situation is not made conscious, it happens outside, as fate.',                         // Aion, CW 9ii, para. 126
    'Everything that irritates us about others can lead us to an understanding of ourselves.'              // Memories, Dreams, Reflections
  ];
- var css = `
-.kc-shadow-q.kc-q-long{font-size:clamp(28px,4.8vw,60px)!important;max-width:19ch!important}
-`;
- var tag = D.createElement('style');
- tag.textContent = css;
- (D.head || D.documentElement).appendChild(tag);
+ window.KCFOJ_style('.kc-shadow-q.kc-q-long{font-size:clamp(28px,4.8vw,60px)!important;max-width:19ch!important}', 'quotes');
  // One quote per visit: the first visit gets the default, later visits step through the list
  var idx = null;
  function pick() {
@@ -1789,6 +2384,7 @@ html.kc-lock{overflow:hidden}
 (function () {
   var D = document, R = D.documentElement, W = window.KCFOJ_WORDS || {};
   var on = window.KCFOJ_on || function () { return true; }, listen = window.KCFOJ_listen || function () {};
+  var mark = window.KCFOJ_mark, has = window.KCFOJ_has;
   var LEX = (W.lexicon || []).filter(function (e) { return e && e.term && e.find && e.def; });
   var MAX = W.glossMax || 8, PER = 2, GAP = 40, EDGE = 20, WIDE = 1100, NOTE = 250;
   var css = `
@@ -1827,14 +2423,12 @@ html.kc-lock{overflow:hidden}
 .kc-still .kc-def{transition:none;transform:none}
 .kc-still .kc-note{animation:none;transition:none}
 `;
-  var tag = D.createElement('style');
-  tag.textContent = css;
-  (D.head || R).appendChild(tag);
+  window.KCFOJ_style(css, 'margin');
 
   var esc = window.KCFOJ_esc || function (s) { return String(s); };
   function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
   function here() { return location.pathname.replace(/\/+$/, ''); }
-  var OFF = 'header, footer, nav, form, a, button, [role="button"], h1, h2, h3, h4, h5, h6, blockquote, code, pre, textarea, .kc-card, .kc-band, .kc-shadow, .kc-lb, .kc-margin, .kc-def, .kc-colophon, .kc-lex, .kc-epigraph, .kc-epigraph-by, .kc-tl, .kc-seal, .kc-veil, [data-kc-zone]';
+  var OFF = 'header, footer, nav, form, a, button, [role="button"], h1, h2, h3, h4, h5, h6, blockquote, code, pre, textarea, [data-kc~="card"], .kc-band, .kc-shadow, .kc-lb, .kc-margin, .kc-def, .kc-colophon, [data-kc-about], .kc-seal, .kc-veil, [data-kc-zone], ' + window.KCFOJ_DIALOGS;
   var TAPS = '.kc-gloss, .kc-term, .kc-fw';
 
   var glosses = [], layer = null, card = null, cardFrom = null, y0 = 0, lastPath = null, uid = 0, kbd = false;
@@ -1897,6 +2491,7 @@ html.kc-lock{overflow:hidden}
   }
   function scan() {
     var changed = false;
+    if (window.KCFOJ_commerce()) return false;
     // Forget glosses that Square has redrawn away, so the term can be found again
     glosses = glosses.filter(function (g) {
       if (D.contains(g.span)) return true;
@@ -1930,11 +2525,13 @@ html.kc-lock{overflow:hidden}
       if (box.closest(OFF)) continue;
       var len = textLen(box);
       if (len < 20) continue;
-      if (!box.classList.contains('kc-prose')) box.classList.add('kc-prose');
+      // Links in body text turn rubric without fading from Square's color (Part 2 holds their transitions)
+      if (!has(box, 'prose')) { if (window.KCFOJ_markNow) window.KCFOJ_markNow(box, 'prose', true); else mark(box, 'prose'); }
       if (!gloss || len < 60 || glosses.length >= MAX || box.getAttribute('data-kc-scan') === String(len)) continue;
       box.setAttribute('data-kc-scan', String(len));
       if (glossBox(box, used)) changed = true;
     }
+    if (window.KCFOJ_settle) window.KCFOJ_settle();
     // Reading order (the margin letters follow it)
     glosses.sort(function (a, b) { return a.span.compareDocumentPosition(b.span) & 4 ? -1 : 1; });
     // Words in the index line and the drifting band open the same notes
@@ -2047,7 +2644,7 @@ html.kc-lock{overflow:hidden}
       n.classList.toggle('kc-note-l', side === 'l');
       n.style.width = best.w + 'px';
       // A paragraph still waiting to rise into view keeps its note hidden until it arrives
-      n.classList.toggle('kc-note-wait', !!box.closest('.kc-rv:not(.kc-in)'));
+      n.classList.toggle('kc-note-wait', !!box.closest('[data-kc-rv^="wait"]'));
       log.push(t + ': margin, ' + (side === 'r' ? 'right' : 'left') + ', y ' + Math.round(y) + ' to ' + Math.round(y + h));
       n.style.left = Math.round(x - ox) + 'px';
       n.style.top = Math.round(y - oy) + 'px';
@@ -2169,52 +2766,99 @@ html.kc-lock{overflow:hidden}
   };
 })();
 
-/* ===== Part 10: "Tonight" ribbon on the date seals =====
+/* ===== Part 10: Today / Tonight / Tomorrow ribbon on the date seals =====
    On the day of an event its date seal gets a rubric ribbon across its
    lower edge: "Tonight" for events at 4 PM or later, "Today" for earlier
-   ones. The day before, it reads "Tomorrow". Needs Part 6. */
+   ones. The day before, it reads "Tomorrow". Needs Part 6.
+
+   The ribbon appears only when the event's year is certain:
+   1. a machine-readable <time datetime="2026-10-08T19:00"> on the card, or
+   2. a four-digit year written with that date on the card ("Oct 8, 2026",
+      "8 Oct 2026", "2026-10-08" or "10/8/2026").
+   Otherwise there is no ribbon, so an archived event can never read "Today".
+   If the seal shows a weekday, it must agree with the date as well. */
 (function () {
   var D = document, on = window.KCFOJ_on || function () { return true; };
-  var css = `
-.kc-seal-flag{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);padding:3px 8px 3px calc(8px + .2em);white-space:nowrap;background:var(--kc-accent);border:1px solid var(--kc-gold);color:var(--kc-card);font:500 8.5px/1.25 var(--kc-mono);letter-spacing:.2em;text-transform:uppercase;box-shadow:0 4px 10px -4px rgba(20,12,10,.5)}
-.kc-seal-flag.kc-now{animation:kcFlag 2.8s ease-in-out infinite}
-@keyframes kcFlag{0%,100%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 0 rgba(168,132,79,0)}50%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 4px rgba(168,132,79,.3)}}
-.kc-still .kc-seal-flag.kc-now{animation:none}
-`;
-  var tag = D.createElement('style');
-  tag.textContent = css;
-  (D.head || D.documentElement).appendChild(tag);
+  window.KCFOJ_style(
+    '.kc-seal-flag{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);padding:3px 8px 3px calc(8px + .2em);white-space:nowrap;background:var(--kc-accent);border:1px solid var(--kc-gold);color:var(--kc-card);font:500 8.5px/1.25 var(--kc-mono);letter-spacing:.2em;text-transform:uppercase;box-shadow:0 4px 10px -4px rgba(20,12,10,.5)}\n' +
+    '.kc-seal-flag.kc-now{animation:kcFlag 2.8s ease-in-out infinite}\n' +
+    '@keyframes kcFlag{0%,100%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 0 rgba(168,132,79,0)}50%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 4px rgba(168,132,79,.3)}}\n' +
+    '.kc-still .kc-seal-flag.kc-now{animation:none}', 'ribbon');
 
   var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  var DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
   var DAY = 864e5;
-  // Days from today to the event (the seal shows no year, so the nearest matching date is used)
-  function daysUntil(m, d) {
-    var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    var ev = new Date(now.getFullYear(), m, d);
-    if (ev - today < -180 * DAY) ev.setFullYear(ev.getFullYear() + 1);
-    else if (ev - today > 180 * DAY) ev.setFullYear(ev.getFullYear() - 1);
-    return Math.round((ev - today) / DAY);
+  var MN = '(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?';
+  // Each pattern also refuses a year that runs on into more digits
+  var WRITTEN = [
+    [new RegExp(MN + '\\s*(\\d{1,2})(?:st|nd|rd|th)?,?\\s*(\\d{4})(?!\\d)', 'ig'), function (m) { return [MONTHS.indexOf(m[1].slice(0, 3).toLowerCase()), +m[2], +m[3]]; }],
+    [new RegExp('(?:^|\\D)(\\d{1,2})(?:st|nd|rd|th)?\\s*' + MN + ',?\\s*(\\d{4})(?!\\d)', 'ig'), function (m) { return [MONTHS.indexOf(m[2].slice(0, 3).toLowerCase()), +m[1], +m[3]]; }],
+    [/(?:^|\D)(\d{4})-(\d{1,2})-(\d{1,2})(?!\d)/g, function (m) { return [+m[2] - 1, +m[3], +m[1]]; }],
+    [/(?:^|\D)(\d{1,2})\/(\d{1,2})\/(\d{4})(?!\d)/g, function (m) { return [+m[1] - 1, +m[2], +m[3]]; }]
+  ];
+  // The card's words with a space between every piece of text (so "2026" and a button's
+  // "Register" never run together), leaving out the seal itself
+  function wordsOf(card) {
+    var out = [], w = D.createTreeWalker(card, NodeFilter.SHOW_TEXT, null), n;
+    while ((n = w.nextNode())) if (!(n.parentElement && n.parentElement.closest('.kc-seal'))) out.push(n.nodeValue);
+    return out.join(' ').replace(/\s+/g, ' ');
   }
+  // The year written on the card with this same month and day, or null
+  function writtenYear(txt, mo, d) {
+    for (var i = 0; i < WRITTEN.length; i++) {
+      var re = WRITTEN[i][0], m;
+      re.lastIndex = 0;
+      while ((m = re.exec(txt))) {
+        var x = WRITTEN[i][1](m);
+        if (x[0] === mo && x[1] === d) return x[2];
+      }
+    }
+    return null;
+  }
+  // The hour of the event from text like "7:00 PM", or -1
+  function hourIn(card) {
+    var bits = card ? card.querySelectorAll('*') : [];
+    for (var i = 0; i < bits.length; i++) {
+      var t = bits[i].childElementCount ? null : bits[i].textContent.match(/\b(\d{1,2})(?::\d{2})?\s*([AaPp])\.?\s?[Mm]\b/);
+      if (t) return (+t[1] % 12) + (/p/i.test(t[2]) ? 12 : 0);
+    }
+    return -1;
+  }
+  function eventDate(s) {
+    var k = s._kc;
+    if (!k || !k.p) return null;
+    var mo = MONTHS.indexOf(k.p.mo.slice(0, 3).toLowerCase()), d = +k.p.d, y = null, h = -1, card = k.card;
+    if (mo < 0 || !d) return null;
+    // 1. A machine-readable date on the card
+    var times = card ? card.querySelectorAll('time[datetime]') : [];
+    for (var i = 0; i < times.length && y === null; i++) {
+      var m = (times[i].getAttribute('datetime') || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+      if (m && +m[2] - 1 === mo && +m[3] === d) { y = +m[1]; if (m[4]) h = +m[4]; }
+    }
+    // 2. A four-digit year written with this date (on the pill itself, or elsewhere on the card)
+    if (y === null && k.p.y) y = k.p.y;
+    if (y === null && card) y = writtenYear(wordsOf(card), mo, d);
+    // 3. Otherwise the year is not certain, and there is no ribbon
+    if (y === null) return null;
+    var ev = new Date(y, mo, d);
+    if (ev.getMonth() !== mo || ev.getDate() !== d) return null;
+    if (k.p.wd && DAYS[ev.getDay()] !== k.p.wd.slice(0, 3).toLowerCase()) return null;
+    return { date: ev, hour: h >= 0 ? h : hourIn(card) };
+  }
+  // Each seal is labelled for one day; on a later day (a tab left open overnight, a page
+  // brought back from the browser's memory) it is looked at again
   function flags() {
     if (!on('tonightRibbon')) return;
+    var n = new Date(), today = new Date(n.getFullYear(), n.getMonth(), n.getDate()), key = String(+today);
     [].forEach.call(D.querySelectorAll('.kc-seal'), function (s) {
-      if (s.dataset.kcFlag) return;
-      s.dataset.kcFlag = '1';
-      var dEl = s.querySelector('.kc-seal-day'), mEl = s.querySelector('.kc-seal-mo');
-      if (!dEl || !mEl) return;
-      var m = MONTHS.indexOf(mEl.textContent.trim().slice(0, 3).toLowerCase()), d = +dEl.textContent;
-      if (m < 0 || !d) return;
-      var left = daysUntil(m, d), label = '';
+      if (s.getAttribute('data-kc-flag') === key) return;
+      s.setAttribute('data-kc-flag', key);
+      [].forEach.call(s.querySelectorAll('.kc-seal-flag'), function (f) { f.parentNode.removeChild(f); });
+      var e = eventDate(s);
+      if (!e) return;
+      var left = Math.round((e.date - today) / DAY), label = '';
       if (left === 1) label = 'Tomorrow';
-      else if (left === 0) {
-        // The event time, read from the card's own text pieces, like "7:00 PM"
-        var card = s.closest('.kc-card'), h = -1, bits = card ? card.querySelectorAll('*') : [];
-        for (var i = 0; i < bits.length && h < 0; i++) {
-          var t = bits[i].childElementCount ? null : bits[i].textContent.match(/\b(\d{1,2})(?::\d{2})?\s*([AaPp])\.?\s?[Mm]\b/);
-          if (t) h = (+t[1] % 12) + (/p/i.test(t[2]) ? 12 : 0);
-        }
-        label = h >= 16 ? 'Tonight' : 'Today';
-      }
+      else if (left === 0) label = e.hour >= 16 ? 'Tonight' : 'Today';
       if (!label) return;
       var f = D.createElement('span');
       f.className = 'kc-seal-flag' + (left === 0 ? ' kc-now' : '');
@@ -2228,41 +2872,54 @@ html.kc-lock{overflow:hidden}
     if (prev) prev();
     try { flags(); } catch (e) { if (window.console) console.warn('KCFOJ ribbon:', e); }
   };
+  function again() { if (!D.hidden && window.KCFOJ_schedule) window.KCFOJ_schedule(); }
+  D.addEventListener('visibilitychange', again);
+  window.addEventListener('pageshow', function (e) { if (e.persisted) again(); });
+  (function midnight() {
+    var n = new Date(), next = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 30);
+    setTimeout(function () { again(); midnight(); }, Math.min(next - n, 864e5));
+  })();
 })();
 
 /* ===== Part 11: plates as a manuscript spread =====
    Turns a gallery grid of plates into a swipeable spread of folio pages
    that lean gently as they pass the center, with folio numerals beneath.
-   Tapping a plate still opens it full screen. Fitted to Square's image
-   gallery (grid > image-cell > wrappers > img). If the result ever measures
-   wrong, it puts the grid back by itself. */
+   Tapping a plate still opens it full screen.
+
+   No one ever sees the grid turn into the spread. Part 2 holds each gallery
+   that could become a spread out of sight (its space kept) the moment Square
+   adds it. Here the spread is built and checked while it is hidden, and the
+   gallery is shown once, already in its final state: the spread if every
+   check passes, otherwise Square's own grid, untouched. A gallery that is not
+   ready within 2.6 seconds of coming near the screen is shown as Square's grid
+   and stays that way. If Square later redraws the plates inside a spread, the
+   spread is rebuilt before the next frame, or Square's grid comes back. */
 (function () {
   var D = document, on = window.KCFOJ_on || function () { return true; };
+  var mark = window.KCFOJ_mark, unmark = window.KCFOJ_unmark, has = window.KCFOJ_has, self = window.KCFOJ_self;
   var still = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var roman = window.KCFOJ_roman || function (n) { return String(n); };
-  var css = `
-.kc-folio{--kc-page:min(64vw,300px);display:flex!important;flex-wrap:nowrap!important;align-items:flex-start!important;gap:clamp(18px,3vw,34px)!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px calc(50% - var(--kc-page) / 2) 26px!important;margin-left:0!important;margin-right:0!important;max-width:none!important;height:auto!important;perspective:1400px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
-.kc-folio::-webkit-scrollbar{display:none}
-.kc-folio:focus-visible{outline:2px solid var(--kc-accent);outline-offset:4px}
-.kc-folio-flat{display:contents!important}
-.kc-folio-skip{display:none!important}
-.kc-folio-page{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;position:relative!important;inset:auto!important;scroll-snap-align:center;transform-origin:50% 50%}
-.kc-folio-leaf{overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important}
-.kc-folio-top{flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:calc(var(--kc-page) * var(--kc-ratio,1.31))!important;max-height:none!important;min-height:0!important;margin:0!important;position:relative!important}
-.kc-folio-fill{flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important}
-.kc-folio-abs{position:absolute!important;inset:0!important}
-.kc-folio-img{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:50% 50%!important}
+  var F = 'data-kc-f', BOX = '[data-kc-f~="box"]', PAGE = '[data-kc-f~="page"]';
+  window.KCFOJ_style(`
+${BOX}{--kc-page:min(64vw,300px);display:flex!important;flex-wrap:nowrap!important;align-items:flex-start!important;gap:clamp(18px,3vw,34px)!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px calc(50% - var(--kc-page) / 2) 26px!important;margin-left:0!important;margin-right:0!important;max-width:none!important;height:auto!important;perspective:1400px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+${BOX}::-webkit-scrollbar{display:none}
+${BOX}:focus-visible{outline:2px solid var(--kc-accent);outline-offset:4px}
+[data-kc-f~="flat"]{display:contents!important}
+[data-kc-f~="skip"]{display:none!important}
+${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;position:relative!important;inset:auto!important;scroll-snap-align:center;transform-origin:50% 50%;opacity:var(--kc-fade,1)!important}
+[data-kc-f~="leaf"]{overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;transform:var(--kc-lean,none)!important}
+[data-kc-f~="top"]{flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:calc(var(--kc-page) * var(--kc-ratio,1.31))!important;max-height:none!important;min-height:0!important;margin:0!important;position:relative!important}
+[data-kc-f~="fill"]{flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important}
+[data-kc-f~="abs"]{position:absolute!important;inset:0!important}
+[data-kc-f~="img"]{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:50% 50%!important;aspect-ratio:auto!important}
 .kc-folio-no{display:block;margin-top:14px;text-align:center;font:italic 400 14px/1 var(--kc-serif);letter-spacing:.08em;color:var(--kc-accent);opacity:.8;pointer-events:none}
 .kc-folio-btn{position:absolute;z-index:3;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--kc-gold);border-radius:50%;background:var(--kc-card);color:var(--kc-accent);font:400 26px/1 Georgia,serif;cursor:pointer;box-shadow:0 8px 20px -10px rgba(20,12,10,.5);transition:opacity .3s ease}
 .kc-folio-btn[disabled]{opacity:0;pointer-events:none}
-@media (min-width:900px){.kc-folio{--kc-page:min(24vw,300px)}}
+@media (min-width:900px){${BOX}{--kc-page:min(24vw,300px)}}
 @media (max-width:899px){.kc-folio-btn{display:none}}
-.kc-still .kc-folio{scroll-behavior:auto}
+.kc-still ${BOX}{scroll-behavior:auto}
 .kc-still .kc-folio-btn{transition:none}
-`;
-  var tag = D.createElement('style');
-  tag.textContent = css;
-  (D.head || D.documentElement).appendChild(tag);
+`, 'folio');
 
   function holds(el, tiles) { return tiles.filter(function (t) { return el.contains(t); }).length; }
 
@@ -2270,22 +2927,24 @@ html.kc-lock{overflow:hidden}
   function tilt(box) {
     if (still) return;
     var br = box.getBoundingClientRect(), cx = br.left + br.width / 2;
-    [].forEach.call(box.querySelectorAll('.kc-folio-page'), function (p) {
+    [].forEach.call(box.querySelectorAll(PAGE), function (p) {
       var r = p.getBoundingClientRect(), k = Math.max(-1, Math.min(1, (r.left + r.width / 2 - cx) / br.width * 2.2));
-      // A page that is itself the plate keeps its own hover tilt (Part 3), so it only fades
-      if (p.classList.contains('kc-folio-leaf')) p.style.transform = 'rotateY(' + (-k * 16).toFixed(2) + 'deg) scale(' + (1 - Math.abs(k) * 0.08).toFixed(3) + ')';
-      p.style.opacity = (1 - Math.abs(k) * 0.25).toFixed(3);
+      // A page that is itself the plate keeps its own hover tilt (Part 3), so it only fades.
+      // Both go through custom properties: Square's own inline styles on the page are never touched.
+      self.add(p);
+      if (has(p, 'leaf', F)) p.style.setProperty('--kc-lean', 'rotateY(' + (-k * 16).toFixed(2) + 'deg) scale(' + (1 - Math.abs(k) * 0.08).toFixed(3) + ')');
+      p.style.setProperty('--kc-fade', (1 - Math.abs(k) * 0.25).toFixed(3));
     });
   }
   function step(box) {
-    var ps = box.querySelectorAll('.kc-folio-page');
+    var ps = box.querySelectorAll(PAGE);
     return ps.length > 1 ? ps[1].getBoundingClientRect().left - ps[0].getBoundingClientRect().left : box.clientWidth * 0.8;
   }
   function arrows(box) {
     var host = box.parentElement;
     if (!host) return;
     if (!box._kcBtns || !host.contains(box._kcBtns[0])) {
-      if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+      if (getComputedStyle(host).position === 'static') mark(host, 'rel');
       box._kcBtns = ['\u2039', '\u203A'].map(function (ch, i) {
         var b = D.createElement('button');
         b.type = 'button';
@@ -2306,26 +2965,32 @@ html.kc-lock{overflow:hidden}
   }
   function refresh(box) { tilt(box); arrows(box); }
 
+  // Puts one gallery back exactly as Square made it: only what this part wrote is taken back
+  function putBack(el, name, v) { if (v === null || v === undefined) el.removeAttribute(name); else el.setAttribute(name, v); }
   function undo(box) {
-    box.dataset.kcFolioOff = '1';
-    ['kc-folio', 'kc-folio-flat', 'kc-folio-skip', 'kc-folio-page', 'kc-folio-leaf', 'kc-folio-top', 'kc-folio-fill', 'kc-folio-abs', 'kc-folio-img'].forEach(function (c) {
-      [].forEach.call(D.querySelectorAll('.' + c), function (el) { el.classList.remove(c); el.style.transform = ''; el.style.opacity = ''; });
+    var els = [box].concat([].slice.call(box.querySelectorAll('[' + F + ']')));
+    els.forEach(function (el) {
+      el.removeAttribute(F); el.removeAttribute('data-kc-ratio');
+      el.style.removeProperty('--kc-lean'); el.style.removeProperty('--kc-fade');
     });
-    [].forEach.call(D.querySelectorAll('.kc-folio-no, .kc-folio-btn'), function (el) { el.parentNode.removeChild(el); });
-    box.removeAttribute('tabindex');
-    box.removeAttribute('aria-label');
-    box.style.removeProperty('--kc-ratio');
-    if (window.console) console.warn('KCFOJ folio: plates measured wrong, grid restored');
+    [].forEach.call(box.querySelectorAll('.kc-folio-no'), function (el) { el.parentNode.removeChild(el); });
+    if (box._kcBtns) box._kcBtns.forEach(function (b) { if (b.parentNode) b.parentNode.removeChild(b); });
+    box._kcBtns = null;
+    if (box._kcAttrs) { putBack(box, 'tabindex', box._kcAttrs[0]); putBack(box, 'aria-label', box._kcAttrs[1]); box._kcAttrs = null; }
+    box.setAttribute('data-kc-folio-off', '1');
   }
-  function folio() {
-    if (!on('folioViewer')) return;
-    var box = D.querySelector('.kc-folio');
-    if (box) { refresh(box); return; }
-    var tiles = [].filter.call(D.querySelectorAll('.kc-tile'), function (t) { return !t.closest('.kc-lb, .kc-card, header, footer, nav'); });
-    if (tiles.length < 4) return;
-    box = tiles[0].parentElement;
-    while (box && box !== D.body && holds(box, tiles) < tiles.length) box = box.parentElement;
-    if (!box || box === D.body || box.dataset.kcFolioOff) return;
+  // 'ok' when the spread is built and checked, 'wait' while its pictures are still arriving,
+  // 'no' when this gallery should stay as Square's grid
+  function build(box) {
+    var imgs = [].slice.call(box.getElementsByTagName('img'));
+    var tiles = [].filter.call(box.querySelectorAll('[data-kc~="tile"]'), function (t) { return !t.closest('.kc-lb'); });
+    if (imgs.length < 4) return 'no';
+    if (tiles.length !== imgs.length) {
+      // Plates are recognised once their pictures have arrived; a picture that has arrived and
+      // still has no size (hidden, or broken) means this is not a gallery to turn into a spread
+      var arriving = imgs.some(function (im) { return !im.complete; });
+      return arriving ? 'wait' : 'no';
+    }
     // Every child of the gallery must hold exactly one plate; rows of plates are flattened
     var pages = [], flats = [], skips = [], ok = true;
     [].forEach.call(box.children, function (c) {
@@ -2338,32 +3003,35 @@ html.kc-lock{overflow:hidden}
         if (m === 1) pages.push(g); else if (m > 1 || g.textContent.trim()) ok = false; else skips.push(g);
       });
     });
-    if (!ok || pages.length !== tiles.length || pages.some(function (p) { return /^(IMG|PICTURE|VIDEO)$/.test(p.tagName); })) return;
+    if (!ok || pages.length !== tiles.length || pages.some(function (p) { return /^(IMG|PICTURE|VIDEO)$/.test(p.tagName); })) return 'no';
     // Plate shape from the first picture (manuscript plates are tall pages)
     var im0 = tiles[0].tagName === 'IMG' ? tiles[0] : tiles[0].querySelector('img'), ratio = 1.31;
     if (im0 && im0.naturalWidth && im0.naturalHeight) ratio = Math.max(0.6, Math.min(2, im0.naturalHeight / im0.naturalWidth));
-    box.style.setProperty('--kc-ratio', ratio.toFixed(3));
-    box.classList.add('kc-folio');
+    var rk = ratio.toFixed(3);
+    window.KCFOJ_rule('[data-kc-ratio="' + rk + '"]', '--kc-ratio:' + rk);
+    box.setAttribute('data-kc-ratio', rk);
+    mark(box, 'box', F);
+    if (!box._kcAttrs) box._kcAttrs = [box.getAttribute('tabindex'), box.getAttribute('aria-label')];
     box.setAttribute('tabindex', '0');
     box.setAttribute('aria-label', 'Plates, scroll sideways');
-    flats.forEach(function (f) { f.classList.add('kc-folio-flat'); });
-    skips.forEach(function (s) { s.classList.add('kc-folio-skip'); });
+    flats.forEach(function (f) { mark(f, 'flat', F); });
+    skips.forEach(function (s) { mark(s, 'skip', F); });
     pages.forEach(function (p, i) {
-      p.classList.add('kc-folio-page');
-      if (p.classList.contains('kc-tile')) return; // the plate itself: nothing can hang below it
-      p.classList.add('kc-folio-leaf');
+      mark(p, 'page', F);
+      if (has(p, 'tile')) return; // the plate itself: nothing can hang below it
+      mark(p, 'leaf', F);
       // Make every wrapper between the page and its plate fill the page, so Square's fixed sizes let go
       var t = tiles.filter(function (x) { return p.contains(x); })[0], chain = [];
       for (var n = t.parentElement; n && n !== p; n = n.parentElement) chain.push(n);
       var top = chain.length ? chain[chain.length - 1] : t;
       chain.forEach(function (c) {
-        c.classList.add(c === top ? 'kc-folio-top' : 'kc-folio-fill');
-        if (c !== top && getComputedStyle(c).position === 'absolute') c.classList.add('kc-folio-abs');
+        mark(c, c === top ? 'top' : 'fill', F);
+        if (c !== top && getComputedStyle(c).position === 'absolute') mark(c, 'abs', F);
       });
-      if (t === top) t.classList.add('kc-folio-top');
+      if (t === top) mark(t, 'top', F);
       var img = t.tagName === 'IMG' ? t : t.querySelector('img');
-      if (t !== top && t !== img) t.classList.add('kc-folio-fill');
-      if (img) img.classList.add('kc-folio-img');
+      if (t !== top && t !== img) mark(t, 'fill', F);
+      if (img) mark(img, 'img', F);
       var no = D.createElement('span');
       no.className = 'kc-folio-no';
       no.setAttribute('aria-hidden', 'true');
@@ -2372,23 +3040,65 @@ html.kc-lock{overflow:hidden}
     });
     // On wide screens, open on the second plate so the spread has a page on each side
     if (pages.length > 2 && window.matchMedia && window.matchMedia('(min-width: 900px)').matches) {
+      self.add(box);
+      var sb = box.style.scrollBehavior;
       box.style.scrollBehavior = 'auto';
       box.scrollLeft = step(box);
-      box.style.scrollBehavior = '';
+      box.style.scrollBehavior = sb;
     }
-    // Self-check: every plate must fill at least half its page, or everything is undone
+    // Self-check: every plate must fill at least half its page, or the grid comes back untouched
     var bad = tiles.some(function (x) {
-      var pg = x.closest('.kc-folio-page'), a = x.getBoundingClientRect().width, b = pg ? pg.getBoundingClientRect().width : 0;
+      var pg = x.closest(PAGE), a = x.getBoundingClientRect().width, b = pg ? pg.getBoundingClientRect().width : 0;
       return !b || a < b * 0.5;
     });
-    if (bad) { undo(box); return; }
-    var ticking = false;
-    box.addEventListener('scroll', function () {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(function () { ticking = false; refresh(box); });
-    }, { passive: true });
-    requestAnimationFrame(function () { refresh(box); });
+    if (bad) { undo(box); if (window.console) console.warn('KCFOJ folio: plates measured wrong, grid kept'); return 'no'; }
+    if (!box._kcScroll) {
+      box._kcScroll = true;
+      var ticking = false;
+      box.addEventListener('scroll', function () {
+        if (ticking || !has(box, 'box', F)) return;
+        ticking = true;
+        requestAnimationFrame(function () { ticking = false; refresh(box); });
+      }, { passive: true });
+    }
+    refresh(box);
+    return 'ok';
+  }
+  // Every picture in a built spread still sits on a page of its own
+  function intact(box) {
+    var imgs = box.getElementsByTagName('img');
+    if (!imgs.length || box.querySelectorAll(PAGE).length !== imgs.length) return false;
+    for (var i = 0; i < imgs.length; i++) if (!imgs[i].closest(PAGE)) return false;
+    return true;
+  }
+  function leftAsGrid() { if (window.KCFOJ_stats) window.KCFOJ_stats.leftAsGrid++; }
+  function attempt(box) {
+    var r = 'no';
+    try { r = build(box); } catch (e) { try { undo(box); } catch (e2) {} if (window.console) console.warn('KCFOJ folio:', e); }
+    return r;
+  }
+  function folio() {
+    var held = D.querySelectorAll('[data-kc-hold="1"]');
+    [].forEach.call(held, function (box) {
+      if (!on('folioViewer')) { box.setAttribute('data-kc-hold', 'done'); return; }
+      if (window.KCFOJ_watchHold) window.KCFOJ_watchHold(box);
+      var r = attempt(box);
+      if (r === 'wait') return;           // still hidden; Part 2 shows the grid if this takes too long
+      if (r === 'no') { box.setAttribute('data-kc-folio-off', '1'); leftAsGrid(); }
+      box.setAttribute('data-kc-hold', 'done');   // shown now, in its final state
+    });
+    [].forEach.call(D.querySelectorAll(BOX), function (box) {
+      if (intact(box)) { refresh(box); return; }
+      // Square redrew the plates: put its grid back, look at the plates again, and rebuild,
+      // all before the next frame. If the spread cannot be rebuilt at once, the grid stays.
+      undo(box);
+      box.removeAttribute('data-kc-folio-off');
+      if (window.KCFOJ_tiles) window.KCFOJ_tiles(box);
+      if (attempt(box) !== 'ok') {
+        undo(box); leftAsGrid();
+        if (window.console) console.info('KCFOJ folio: Square redrew the plates; its grid is shown');
+      }
+    });
   }
 
   var prev = window.KCFOJ_wow;
@@ -2400,10 +3110,12 @@ html.kc-lock{overflow:hidden}
 
 /* ===== Part 12: the colophon, Open at random, and the snail =====
    A last strip under the footer, as at the back of a book: who keeps it,
-   what it is set in, and a link that opens a random page from the archive.
-   That link reads the site's own sitemap, so new stories and programs join
-   in by themselves. A small snail lives here too; medieval scribes drew
-   them in the margins. Tap it. */
+   what it is set in, and a link that opens a random story from the archive.
+   That link reads the site's own sitemap, so new stories join in by
+   themselves. It only ever chooses story pages (randomPages in Part 0):
+   never events, products, memberships, donations or anything in the shop.
+   A small snail lives here too; medieval scribes drew them in the margins.
+   Tap it. */
 (function () {
   var D = document, R = D.documentElement, W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
   var css = `
@@ -2421,9 +3133,7 @@ html.kc-lock{overflow:hidden}
 .kc-snail-note{margin:0!important;max-width:30em;font:italic 400 14.5px/1.55 var(--kc-serif)!important;color:var(--kc-verd)!important}
 .kc-snail-note[hidden]{display:none}
 `;
-  var tag = D.createElement('style');
-  tag.textContent = css;
-  (D.head || R).appendChild(tag);
+  window.KCFOJ_style(css, 'colophon');
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function snail() {
@@ -2459,7 +3169,8 @@ html.kc-lock{overflow:hidden}
     c.querySelector('.kc-random').addEventListener('click', randomPage);
     return c;
   }
-  // A random story or program page, read from the sitemap (memberships and donations left out)
+  // A random story, read from the sitemap
+  var POOL = W.randomPages instanceof RegExp ? W.randomPages : /^\/s\/stories\/[^\/]+$/;
   function randomPage(e) {
     e.preventDefault();
     var now = location.pathname, fallback = ['/s/stories'];
@@ -2471,9 +3182,7 @@ html.kc-lock{overflow:hidden}
     fetch('/sitemap.xml', { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (x) {
       var urls = (x.match(/<loc>[^<]+<\/loc>/g) || []).map(function (l) {
         try { return new URL(l.replace(/<\/?loc>/g, '').replace(/&amp;/g, '&')).pathname; } catch (err) { return ''; }
-      }).filter(function (p) {
-        return /^\/s\/stories\/[^\/]+$/.test(p) || (/^\/product\//.test(p) && !/membership|donation|gift-card/i.test(p));
-      });
+      }).filter(function (p) { return POOL.test(p); });
       go(urls.length ? urls : fallback);
     }).catch(function () { go(fallback); });
   }
