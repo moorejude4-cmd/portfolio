@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.1, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.2, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -231,7 +231,7 @@ window.KCFOJ_WORDS = {
   };
   // Pop-ups and dialogs (Square's newsletter pop-up among them) get the page's colors and nothing
   // else: no reveals, glosses, initials or held galleries. This script never hides, delays or moves them.
-  window.KCFOJ_DIALOGS = '[role="dialog"], [aria-modal="true"], dialog, [class*="popup" i], [class*="modal" i]';
+  window.KCFOJ_DIALOGS = '[role="dialog"], [aria-modal="true"], dialog, [class~="popup" i], [class~="modal" i], [class^="popup-" i], [class^="modal-" i], [class*="popup__" i], [class*="modal__" i]';
 
   // The mandala line drawing shared by the arrival veil, the back-to-top device and
   // the night page: two outer rings, twelve petals, an inner ring, eight seeds, a star, a heart.
@@ -446,7 +446,7 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
   function within(el, sel) { try { return !!el.closest(sel); } catch (e) { return false; } }
   function framed(s) {
     return ['Top', 'Right', 'Bottom', 'Left'].every(function (d) {
-      return parseFloat(s['border' + d + 'Width']) >= 1 && s['border' + d + 'Style'] !== 'none';
+      return parseFloat(s['border' + d + 'Width']) >= 0.5 && s['border' + d + 'Style'] !== 'none';
     });
   }
   // Elements this script created, and anything inside them
@@ -564,7 +564,7 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
     try { return paintNow(list); } finally { settle(); }
   }
   function paintNow(list) {
-    var t0 = now(), vw = window.innerWidth, sy = window.pageYOffset, plan = [], i, el, w;
+    var t0 = now(), vw = R.clientWidth || window.innerWidth, sy = window.pageYOffset, plan = [], i, el, w;
     for (i = 0; i < list.length; i++) {
       el = list[i];
       if (el.nodeType !== 1 || !el.isConnected) continue;
@@ -843,18 +843,22 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
   function heavy() {
     hq = 0;
     if (!D.body) return;
-    var t0 = now(), sweep = false, list, vw = window.innerWidth;
+    var t0 = now(), sweep = false, list, vw = R.clientWidth || window.innerWidth;
     zoomable();
     if (location.pathname !== lastPath) { lastPath = location.pathname; fullHeavy = true; zone = null; foot = null; }
     if (fullHeavy) { list = D.body.getElementsByTagName('*'); fullHeavy = false; sweep = true; stats.fullSweeps++; }
     else list = expand(heavyDirty);
     heavyDirty = [];
-    try {
-      cards(vw);
-      footer(vw, sweep);
-      settle();
-      tiles(list, vw);
-    } catch (e) { nowList.forEach(function (x) { x.removeAttribute('data-kc-now'); }); nowList = []; if (window.console) console.warn('KCFOJ core:', e); }
+try {
+ var liveHeader = D.querySelector('[data-block-purpose="header"]');
+ if (liveHeader && !has(liveHeader, 'header')) {
+   markNow(liveHeader, 'header', true, true);
+ }
+ cards(vw);
+ footer(vw, sweep);
+ settle();
+ tiles(list, vw);
+} catch (e) { nowList.forEach(function (x) { x.removeAttribute('data-kc-now'); }); nowList = []; if (window.console) console.warn('KCFOJ core:', e); }
     stats.heavyPasses++; stats.runs++;
     if (window.KCFOJ_wow) window.KCFOJ_wow();
     (window.KCFOJ_after || []).forEach(function (f) { try { f(); } catch (e) { if (window.console) console.warn('KCFOJ:', e); } });
@@ -1511,7 +1515,7 @@ html.kc-lock{overflow:hidden}
     var box = D.getElementById('kc-diag') || D.body.appendChild(mk('pre'));
     box.id = 'kc-diag';
     box.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;max-height:55vh;overflow:auto;margin:0;padding:10px;background:#fff;color:#111;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;border:2px solid #8B2A24;border-radius:6px';
-    box.textContent = 'KCFOJ debug (v3.1.1) page ' + location.pathname + '\n' + diag.join('\n');
+    box.textContent = 'KCFOJ debug (v3.1.2) page ' + location.pathname + '\n' + diag.join('\n');
   }
   function band() {
     if (!heroEl || bandFails >= 12 || (bandEl && D.contains(bandEl))) return;
@@ -2177,14 +2181,26 @@ html.kc-lock{overflow:hidden}
    return p;
  }
  function photoIn(card) {
-   var cw = card.getBoundingClientRect().width, all = card.querySelectorAll('*');
-   for (var i = 0; i < all.length; i++) {
-     var el = all[i], r = el.getBoundingClientRect();
-     if (r.width < cw * 0.6 || r.height < 100) continue;
-     if (/^(IMG|PICTURE|VIDEO)$/.test(el.tagName) || getComputedStyle(el).backgroundImage.indexOf('url(') > -1) return el;
-   }
-   return null;
- }
+
+  var direct = card.querySelector('.featured-event__image img, .featured-event__image [style*="background-image"]');
+
+  if (direct) return direct;
+
+  var cw = card.getBoundingClientRect().width, all = card.querySelectorAll('*');
+
+  for (var i = 0; i < all.length; i++) {
+
+    var el = all[i], r = el.getBoundingClientRect();
+
+    if (r.width < cw * 0.6 || r.height < 100) continue;
+
+    if (/^(IMG|PICTURE|VIDEO)$/.test(el.tagName) || getComputedStyle(el).backgroundImage.indexOf('url(') > -1) return el;
+
+  }
+
+  return null;
+
+}
  // Sits 14px in from the photo's top-left corner, wherever the photo is inside its box
  function place(s) {
    var k = s._kc, a = k.anchor.getBoundingClientRect(), r = k.photo.getBoundingClientRect();
@@ -3211,5 +3227,5 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
   };
 })();
 
-// end of kcfoj-polish v3.1.1
+// end of kcfoj-polish v3.1.2
 // (padding: losing these last lines in a copy and paste does no harm)
