@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.4, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.5, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -1985,7 +1985,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.1.4',
+    version: '3.1.5',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
@@ -2976,329 +2976,24 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
   var roman = window.KCFOJ_roman || function (n) { return String(n); };
   var F = 'data-kc-f', BOX = '[data-kc-f~="box"]', PAGE = '[data-kc-f~="page"]';
   window.KCFOJ_style(`
-/* =========================================================
-   KCFOJ — MANUSCRIPT PLATE GALLERY
-   Two facing pages per row.
-   The existing full-screen folio viewer remains untouched.
-   ========================================================= */
-
-
-/* ----- THE GALLERY / TABLE OF PLATES ----- */
-
-${BOX},
-[data-block-purpose^="gallery"] .image-gallery > .grid{
-  box-sizing:border-box!important;
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  width:min(100%,760px)!important;
-  max-width:760px!important;
-  height:auto!important;
-  margin:0 auto!important;
-  padding:24px clamp(8px,2.4vw,18px) 38px!important;
-  column-gap:clamp(7px,1.5vw,14px)!important;
-  row-gap:clamp(26px,5vw,46px)!important;
-  align-items:start!important;
-  overflow:visible!important;
-  overflow-x:visible!important;
-  overflow-y:visible!important;
-  scroll-snap-type:none!important;
-  scroll-behavior:auto!important;
-  overscroll-behavior:auto!important;
-  perspective:none!important;
-  -webkit-mask-image:none!important;
-  mask-image:none!important;
-  scrollbar-width:none;
-}
-
-${BOX}::-webkit-scrollbar{
-  display:none;
-}
-
-
-/* ----- SQUARE'S ORIGINAL GALLERY FALLBACK ----- */
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) > .image-cell{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  min-height:0!important;
-  aspect-ratio:0.765;
-  margin:0!important;
-  padding:0!important;
-  position:relative!important;
-  transform:none!important;
-  opacity:1!important;
-  overflow:visible!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) > .image-cell:nth-child(odd){
-  transform:rotate(.22deg)!important;
-  transform-origin:100% 50%!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) > .image-cell:nth-child(even){
-  transform:rotate(-.22deg)!important;
-  transform-origin:0 50%!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.image-cell > .image-wrapper,
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.image-cell > .image-wrapper > .w-wrapper.image-wrapper{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  position:relative!important;
-  inset:auto!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-  padding:0!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.inner-image-wrapper{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  position:relative!important;
-  inset:auto!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.inner-image-wrapper > .image{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  position:relative!important;
-  inset:auto!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) img{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  max-width:100%!important;
-  max-height:100%!important;
-  object-fit:contain!important;
-  object-position:50% 50%!important;
-  aspect-ratio:auto!important;
-  margin:0 auto!important;
-  border-radius:2px!important;
-  transform:none!important;
-}
-
-
-/* ----- PART 11 BUILT FOLIO PAGES ----- */
-
-[data-kc-f~="flat"]{
-  display:contents!important;
-}
-
-[data-kc-f~="skip"]{
-  display:none!important;
-}
-
-${PAGE}{
-  box-sizing:border-box!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  margin:0!important;
-  padding:0!important;
-  position:relative!important;
-  inset:auto!important;
-  scroll-snap-align:none!important;
-  transform:none!important;
-  transform-origin:50% 50%!important;
-  opacity:1!important;
-  overflow:visible!important;
-  --kc-fade:1!important;
-  --kc-lean:none!important;
-}
-
-[data-kc-f~="leaf"]{
-  box-sizing:border-box!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:stretch!important;
-  justify-content:flex-start!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  overflow:visible!important;
-  transform:none!important;
-}
-
-[data-kc-f~="top"]{
-  box-sizing:border-box!important;
-  flex:none!important;
-  display:block!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  aspect-ratio:1 / var(--kc-ratio,1.31);
-  margin:0!important;
-  padding:0!important;
-  position:relative!important;
-  inset:auto!important;
-  overflow:visible!important;
-}
-
-[data-kc-f~="fill"]{
-  box-sizing:border-box!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-  padding:0!important;
-}
-
-[data-kc-f~="abs"]{
-  position:absolute!important;
-  inset:0!important;
-}
-
-[data-kc-f~="img"]{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  object-fit:contain!important;
-  object-position:50% 50%!important;
-  aspect-ratio:auto!important;
-  margin:0 auto!important;
-  border-radius:2px!important;
-}
-
-
-/* ----- FOLIO NUMBERS ----- */
-
-.kc-folio-no{
-  display:block!important;
-  margin:10px 0 0!important;
-  padding:0!important;
-  text-align:center!important;
-  font:italic 400 14px/1 var(--kc-serif)!important;
-  letter-spacing:.08em!important;
-  color:var(--kc-accent)!important;
-  opacity:.82!important;
-  pointer-events:none!important;
-}
-
-
-/* ----- NO CAROUSEL CONTROLS IN THE OVERVIEW ----- */
-
-.kc-folio-btn{
-  display:none!important;
-}
-
-
-/* ----- DESKTOP ----- */
-
-@media (min-width:900px){
-
-  ${BOX},
-  [data-block-purpose^="gallery"] .image-gallery > .grid{
-    width:min(100%,720px)!important;
-    max-width:720px!important;
-    padding-top:30px!important;
-    padding-bottom:48px!important;
-    column-gap:clamp(10px,1.25vw,16px)!important;
-    row-gap:46px!important;
-  }
-
-}
-
-
-/* ----- PHONE / SMALL TABLET ----- */
-
-@media (max-width:899px){
-
-  ${BOX},
-  [data-block-purpose^="gallery"] .image-gallery > .grid{
-    width:100%!important;
-    max-width:none!important;
-    padding:18px 8px 34px!important;
-    column-gap:7px!important;
-    row-gap:28px!important;
-  }
-
-  .kc-folio-no{
-    margin-top:8px!important;
-    font-size:12.5px!important;
-  }
-
-}
-
-
-/* ----- VERY SMALL PHONES ----- */
-
-@media (max-width:380px){
-
-  ${BOX},
-  [data-block-purpose^="gallery"] .image-gallery > .grid{
-    padding-left:6px!important;
-    padding-right:6px!important;
-    column-gap:5px!important;
-    row-gap:24px!important;
-  }
-
-}
-
-
-/* Reduced motion: overview never needs animation anyway */
-.kc-still ${BOX}{
-  scroll-behavior:auto!important;
-}
+${BOX}{--kc-page:min(64vw,300px);display:flex!important;flex-wrap:nowrap!important;align-items:flex-start!important;gap:clamp(18px,3vw,34px)!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px calc(50% - var(--kc-page) / 2) 26px!important;margin-left:0!important;margin-right:0!important;max-width:none!important;height:auto!important;perspective:1400px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+${BOX}::-webkit-scrollbar{display:none}
+${BOX}:focus-visible{outline:2px solid var(--kc-accent);outline-offset:4px}
+[data-kc-f~="flat"]{display:contents!important}
+[data-kc-f~="skip"]{display:none!important}
+${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;position:relative!important;inset:auto!important;scroll-snap-align:center;transform-origin:50% 50%;opacity:var(--kc-fade,1)!important}
+[data-kc-f~="leaf"]{overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;transform:var(--kc-lean,none)!important}
+[data-kc-f~="top"]{flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:calc(var(--kc-page) * var(--kc-ratio,1.31))!important;max-height:none!important;min-height:0!important;margin:0!important;position:relative!important}
+[data-kc-f~="fill"]{flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important}
+[data-kc-f~="abs"]{position:absolute!important;inset:0!important}
+[data-kc-f~="img"]{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:50% 50%!important;aspect-ratio:auto!important}
+.kc-folio-no{display:block;margin-top:14px;text-align:center;font:italic 400 14px/1 var(--kc-serif);letter-spacing:.08em;color:var(--kc-accent);opacity:.8;pointer-events:none}
+.kc-folio-btn{position:absolute;z-index:3;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--kc-gold);border-radius:50%;background:var(--kc-card);color:var(--kc-accent);font:400 26px/1 Georgia,serif;cursor:pointer;box-shadow:0 8px 20px -10px rgba(20,12,10,.5);transition:opacity .3s ease}
+.kc-folio-btn[disabled]{opacity:0;pointer-events:none}
+@media (min-width:900px){${BOX}{--kc-page:min(24vw,300px)}}
+@media (max-width:899px){.kc-folio-btn{display:none}}
+.kc-still ${BOX}{scroll-behavior:auto}
+.kc-still .kc-folio-btn{transition:none}
 `, 'folio');
 
   function holds(el, tiles) { return tiles.filter(function (t) { return el.contains(t); }).length; }
