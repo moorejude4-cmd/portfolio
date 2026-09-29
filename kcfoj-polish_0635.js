@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.6, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.7, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -884,6 +884,16 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
       var el = list[i];
       if (el.tagName !== 'IMG' || !el.isConnected) continue;
       if ((zone && zone.contains(el)) || within(el, 'header, footer, nav, [data-kc~="card"], [data-kc~="header"], [data-kc~="tile"], [class*="logo"], ' + BTN + ', ' + OURS + ', ' + window.KCFOJ_DIALOGS)) continue;
+
+      // Square's own gallery is a known plate gallery. Do not make recognition depend on
+      // theme details such as rounded corners; those can change in Square at any time.
+      var squareGrid = el.closest('[data-block-purpose^="gallery"] .image-gallery .grid');
+      if (squareGrid && el.closest('.image-cell')) {
+        mark(el, 'tile');
+        continue;
+      }
+
+      // Fallback for other image galleries elsewhere on the site.
       var r = rect(el);
       if (r.width < 120 || r.width > vw * 0.9) continue;
       for (var n2 = el, target = null, k = 0; n2 && n2 !== D.body && k < 5; k++, n2 = n2.parentElement) {
@@ -895,7 +905,7 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
     }
   }
   // Part 11 asks for a fresh look at one gallery's plates when Square redraws them
-  window.KCFOJ_tiles = function (root) { tiles(root.getElementsByTagName('img'), window.innerWidth); };
+  window.KCFOJ_tiles = function (root) { tiles(root.getElementsByTagName('img'), R.clientWidth || window.innerWidth); };
   function heavy() {
     hq = 0;
     if (!D.body) return;
@@ -1985,7 +1995,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.1.6',
+    version: '3.1.7',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
@@ -3161,11 +3171,19 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
     // Prefer that semantic hook over the generic gallery heuristic so the folio survives
     // normal Square layout/content changes. build() still validates the structure before keeping it.
     if (on('folioViewer') && !window.KCFOJ_commerce()) {
-      [].forEach.call(D.querySelectorAll('[data-block-purpose^="gallery"] .image-gallery > .grid'), function (box) {
-        if (has(box, 'box', F) || box.getAttribute('data-kc-folio-off') === '1') return;
+      [].forEach.call(D.querySelectorAll('[data-block-purpose^="gallery"] .image-gallery .grid'), function (box) {
+        if (has(box, 'box', F)) return;
         var imgs = [].slice.call(box.getElementsByTagName('img'));
-        if (imgs.length < 4 || imgs.some(function (im) { return !im.complete; })) return;
+        var cells = [].slice.call(box.children).filter(function (c) { return c.querySelectorAll && c.querySelectorAll('img').length === 1; });
+        if (imgs.length < 4 || cells.length !== imgs.length || imgs.some(function (im) { return !im.complete; })) return;
+
+        // This is Square's explicit gallery block, so a stale/transient "off" classification
+        // must never permanently block the folio treatment.
+        box.removeAttribute('data-kc-folio-off');
+
+        // Seed the plate marks directly from the semantic gallery before build() validates it.
         if (window.KCFOJ_tiles) window.KCFOJ_tiles(box);
+
         if (attempt(box) === 'ok') box.setAttribute('data-kc-hold', 'done');
       });
     }
@@ -3175,7 +3193,10 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
       if (window.KCFOJ_watchHold) window.KCFOJ_watchHold(box);
       var r = attempt(box);
       if (r === 'wait') return;           // still hidden; Part 2 shows the grid if this takes too long
-      if (r === 'no') { box.setAttribute('data-kc-folio-off', '1'); leftAsGrid(); }
+      if (r === 'no') {
+        if (!box.closest('[data-block-purpose^="gallery"]')) box.setAttribute('data-kc-folio-off', '1');
+        leftAsGrid();
+      }
       box.setAttribute('data-kc-hold', 'done');   // shown now, in its final state
     });
     [].forEach.call(D.querySelectorAll(BOX), function (box) {
