@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.3, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.4, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -350,7 +350,63 @@ ${BTN} *,${OUT} *{color:inherit!important;font-family:inherit!important}
 [data-kc~="card"]{border:1px solid var(--kc-rule)!important;border-radius:var(--kc-radius)!important;overflow:hidden!important;background-color:var(--kc-card)!important;box-shadow:var(--kc-shadow)!important;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
 [data-kc~="pill"]{background-color:rgba(139,42,36,.08)!important;color:var(--kc-accent)!important;font-family:var(--kc-mono)!important;letter-spacing:.08em!important;border-radius:1px!important}
 [data-kc~="tile"]{border-radius:var(--kc-radius)!important;box-shadow:var(--kc-shadow)!important;outline:1px solid rgba(168,132,79,.38);outline-offset:-7px;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
-iframe[src*="youtube"],iframe[src*="vimeo"]{border-radius:var(--kc-radius)!important;box-shadow:var(--kc-shadow)!important}
+iframe[src*="youtube"],iframe[src*="vimeo"]{border-radius:2px!important;box-shadow:none!important}
+
+/* Moving plate: gives Square's video player the same manuscript language as the gallery */
+[data-block-purpose^="video"] .w-video{
+  position:relative!important;
+  overflow:visible!important;
+  border:1px solid var(--kc-accent)!important;
+  outline:1px solid rgba(168,132,79,.62)!important;
+  outline-offset:7px!important;
+  border-radius:2px!important;
+  background:#171310!important;
+  box-shadow:0 20px 45px -24px rgba(20,12,10,.62)!important;
+  transition:transform .45s var(--kc-ease),box-shadow .45s var(--kc-ease)!important;
+}
+[data-block-purpose^="video"] .w-video::before{
+  content:"A moving image";
+  position:absolute;
+  left:0;
+  top:-34px;
+  z-index:3;
+  pointer-events:none;
+  color:var(--kc-accent);
+  font:500 10px/1.2 var(--kc-mono);
+  letter-spacing:.2em;
+  text-transform:uppercase;
+}
+[data-block-purpose^="video"] .w-video::after{
+  content:"Plate in motion · Kansas City Friends of Jung";
+  position:absolute;
+  right:0;
+  bottom:-32px;
+  z-index:3;
+  pointer-events:none;
+  color:var(--kc-ink-soft);
+  font:italic 400 13px/1.3 var(--kc-serif);
+  letter-spacing:.02em;
+}
+[data-block-purpose^="video"] .w-video iframe{
+  border-radius:1px!important;
+}
+@media (hover:hover) and (pointer:fine){
+  [data-block-purpose^="video"] .w-video:hover{
+    transform:translateY(-2px)!important;
+    box-shadow:0 24px 54px -24px rgba(20,12,10,.7)!important;
+  }
+}
+@media (max-width:760px){
+  [data-block-purpose^="video"] .w-video{outline-offset:5px!important}
+  [data-block-purpose^="video"] .w-video::before{top:-28px;font-size:9px}
+  [data-block-purpose^="video"] .w-video::after{
+    bottom:-28px;
+    left:0;
+    right:auto;
+    font-size:12px;
+  }
+}
+.kc-still [data-block-purpose^="video"] .w-video{transition:none!important}
 
 /* A plate gallery waits out of sight (its space kept) while it becomes a folio spread.
    Part 2 lets it go after 2.6 seconds at most, shown as Square made it. Everything inside
@@ -1929,7 +1985,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.1.3',
+    version: '3.1.4',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
