@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.5, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.6, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -719,7 +719,7 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
   // Past that it is shown as Square made it, and stays that way.
   function letGo(box) {
     if (box.getAttribute('data-kc-hold') !== '1') return;
-    box.setAttribute('data-kc-folio-off', '1');
+    if (!box.closest('[data-block-purpose^="gallery"]')) box.setAttribute('data-kc-folio-off', '1');
     box.setAttribute('data-kc-hold', 'done');
     stats.leftAsGrid++;
   }
@@ -768,7 +768,7 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
             // A gallery the visitor may already be looking at is never hidden or changed: it stays
             // Square's grid (this happens only when this script arrives after the page is shown)
             var old = first || !roots.some(function (r) { return r === a || (r.contains && r.contains(a)); });
-            if (old && onScreen(a) && !coverUp()) {
+            if (old && onScreen(a) && !coverUp() && !a.closest('[data-block-purpose^="gallery"]')) {
               a.setAttribute('data-kc-folio-off', '1');
               a.setAttribute('data-kc-hold', 'done');
               stats.leftAsGrid++;
@@ -1985,7 +1985,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.1.5',
+    version: '3.1.6',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
@@ -3060,6 +3060,10 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
     var imgs = [].slice.call(box.getElementsByTagName('img'));
     var tiles = [].filter.call(box.querySelectorAll('[data-kc~="tile"]'), function (t) { return !t.closest('.kc-lb'); });
     if (imgs.length < 4) return 'no';
+    if (tiles.length !== imgs.length && window.KCFOJ_tiles) {
+      window.KCFOJ_tiles(box);
+      tiles = [].filter.call(box.querySelectorAll('[data-kc~="tile"]'), function (t) { return !t.closest('.kc-lb'); });
+    }
     if (tiles.length !== imgs.length) {
       // Plates are recognised once their pictures have arrived; a picture that has arrived and
       // still has no size (hidden, or broken) means this is not a gallery to turn into a spread
@@ -3153,6 +3157,18 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
     return r;
   }
   function folio() {
+    // Square exposes its gallery with a stable block purpose and .image-gallery > .grid.
+    // Prefer that semantic hook over the generic gallery heuristic so the folio survives
+    // normal Square layout/content changes. build() still validates the structure before keeping it.
+    if (on('folioViewer') && !window.KCFOJ_commerce()) {
+      [].forEach.call(D.querySelectorAll('[data-block-purpose^="gallery"] .image-gallery > .grid'), function (box) {
+        if (has(box, 'box', F) || box.getAttribute('data-kc-folio-off') === '1') return;
+        var imgs = [].slice.call(box.getElementsByTagName('img'));
+        if (imgs.length < 4 || imgs.some(function (im) { return !im.complete; })) return;
+        if (window.KCFOJ_tiles) window.KCFOJ_tiles(box);
+        if (attempt(box) === 'ok') box.setAttribute('data-kc-hold', 'done');
+      });
+    }
     var held = D.querySelectorAll('[data-kc-hold="1"]');
     [].forEach.call(held, function (box) {
       if (!on('folioViewer')) { box.setAttribute('data-kc-hold', 'done'); return; }
