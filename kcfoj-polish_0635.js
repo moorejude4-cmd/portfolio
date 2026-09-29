@@ -2900,182 +2900,232 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
   })();
 })();
 
-/* ----- PART 11 BUILT FOLIO PAGES ----- */
+/* ===== Part 11: plates as a manuscript spread =====
+   Turns a gallery grid of plates into a swipeable spread of folio pages
+   that lean gently as they pass the center, with folio numerals beneath.
+   Tapping a plate still opens it full screen.
 
-[data-kc-f~="flat"]{
-  display:contents!important;
-}
-
-[data-kc-f~="skip"]{
-  display:none!important;
-}
-
-${PAGE}{
-  box-sizing:border-box!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  margin:0!important;
-  padding:0!important;
-  position:relative!important;
-  inset:auto!important;
-  scroll-snap-align:none!important;
-  transform:none!important;
-  transform-origin:50% 50%!important;
-  opacity:1!important;
-  overflow:visible!important;
-  --kc-fade:1!important;
-  --kc-lean:none!important;
-}
-
-[data-kc-f~="leaf"]{
-  box-sizing:border-box!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:stretch!important;
-  justify-content:flex-start!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  overflow:visible!important;
-  transform:none!important;
-}
-
-[data-kc-f~="top"]{
-  box-sizing:border-box!important;
-  flex:none!important;
-  display:block!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  aspect-ratio:1 / var(--kc-ratio,1.31);
-  margin:0!important;
-  padding:0!important;
-  position:relative!important;
-  inset:auto!important;
-  overflow:visible!important;
-}
-
-[data-kc-f~="fill"]{
-  box-sizing:border-box!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-  padding:0!important;
-}
-
-[data-kc-f~="abs"]{
-  position:absolute!important;
-  inset:0!important;
-}
-
-[data-kc-f~="img"]{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  object-fit:contain!important;
-  object-position:50% 50%!important;
-  aspect-ratio:auto!important;
-  margin:0 auto!important;
-  border-radius:2px!important;
-}
-
-
-/* ----- FOLIO NUMBERS ----- */
-
-.kc-folio-no{
-  display:block!important;
-  margin:10px 0 0!important;
-  padding:0!important;
-  text-align:center!important;
-  font:italic 400 14px/1 var(--kc-serif)!important;
-  letter-spacing:.08em!important;
-  color:var(--kc-accent)!important;
-  opacity:.82!important;
-  pointer-events:none!important;
-}
-
-
-/* ----- NO CAROUSEL CONTROLS IN THE OVERVIEW ----- */
-
-.kc-folio-btn{
-  display:none!important;
-}
-
-
-/* ----- DESKTOP ----- */
-
-@media (min-width:900px){
-
-  ${BOX},
-  [data-block-purpose^="gallery"] .image-gallery > .grid{
-    width:min(100%,720px)!important;
-    max-width:720px!important;
-    padding-top:30px!important;
-    padding-bottom:48px!important;
-    column-gap:clamp(10px,1.25vw,16px)!important;
-    row-gap:46px!important;
-  }
-
-}
-
-
-/* ----- PHONE / SMALL TABLET ----- */
-
-@media (max-width:899px){
-
-  ${BOX},
-  [data-block-purpose^="gallery"] .image-gallery > .grid{
-    width:100%!important;
-    max-width:none!important;
-    padding:18px 8px 34px!important;
-    column-gap:7px!important;
-    row-gap:28px!important;
-  }
-
-  .kc-folio-no{
-    margin-top:8px!important;
-    font-size:12.5px!important;
-  }
-
-}
-
-
-/* ----- VERY SMALL PHONES ----- */
-
-@media (max-width:380px){
-
-  ${BOX},
-  [data-block-purpose^="gallery"] .image-gallery > .grid{
-    padding-left:6px!important;
-    padding-right:6px!important;
-    column-gap:5px!important;
-    row-gap:24px!important;
-  }
-
-}
-
-
-/* Reduced motion: overview never needs animation anyway */
-.kc-still ${BOX}{
-  scroll-behavior:auto!important;
-}
+   No one ever sees the grid turn into the spread. Part 2 holds each gallery
+   that could become a spread out of sight (its space kept) the moment Square
+   adds it. Here the spread is built and checked while it is hidden, and the
+   gallery is shown once, already in its final state: the spread if every
+   check passes, otherwise Square's own grid, untouched. A gallery that is not
+   ready within 2.6 seconds of coming near the screen is shown as Square's grid
+   and stays that way. If Square later redraws the plates inside a spread, the
+   spread is rebuilt before the next frame, or Square's grid comes back. */
+(function () { if (window.KCFOJ_SKIP) return;
+  var D = document, on = window.KCFOJ_on || function () { return true; };
+  var mark = window.KCFOJ_mark, unmark = window.KCFOJ_unmark, has = window.KCFOJ_has, self = window.KCFOJ_self;
+  var still = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var roman = window.KCFOJ_roman || function (n) { return String(n); };
+  var F = 'data-kc-f', BOX = '[data-kc-f~="box"]', PAGE = '[data-kc-f~="page"]';
+  window.KCFOJ_style(`
+${BOX}{--kc-page:min(64vw,300px);display:flex!important;flex-wrap:nowrap!important;align-items:flex-start!important;gap:clamp(18px,3vw,34px)!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:18px calc(50% - var(--kc-page) / 2) 26px!important;margin-left:0!important;margin-right:0!important;max-width:none!important;height:auto!important;perspective:1400px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+${BOX}::-webkit-scrollbar{display:none}
+${BOX}:focus-visible{outline:2px solid var(--kc-accent);outline-offset:4px}
+[data-kc-f~="flat"]{display:contents!important}
+[data-kc-f~="skip"]{display:none!important}
+${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;position:relative!important;inset:auto!important;scroll-snap-align:center;transform-origin:50% 50%;opacity:var(--kc-fade,1)!important}
+[data-kc-f~="leaf"]{overflow:visible!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;transform:var(--kc-lean,none)!important}
+[data-kc-f~="top"]{flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:calc(var(--kc-page) * var(--kc-ratio,1.31))!important;max-height:none!important;min-height:0!important;margin:0!important;position:relative!important}
+[data-kc-f~="fill"]{flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important}
+[data-kc-f~="abs"]{position:absolute!important;inset:0!important}
+[data-kc-f~="img"]{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:50% 50%!important;aspect-ratio:auto!important}
+.kc-folio-no{display:block;margin-top:14px;text-align:center;font:italic 400 14px/1 var(--kc-serif);letter-spacing:.08em;color:var(--kc-accent);opacity:.8;pointer-events:none}
+.kc-folio-btn{position:absolute;z-index:3;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--kc-gold);border-radius:50%;background:var(--kc-card);color:var(--kc-accent);font:400 26px/1 Georgia,serif;cursor:pointer;box-shadow:0 8px 20px -10px rgba(20,12,10,.5);transition:opacity .3s ease}
+.kc-folio-btn[disabled]{opacity:0;pointer-events:none}
+@media (min-width:900px){${BOX}{--kc-page:min(24vw,300px)}}
+@media (max-width:899px){.kc-folio-btn{display:none}}
+.kc-still ${BOX}{scroll-behavior:auto}
+.kc-still .kc-folio-btn{transition:none}
 `, 'folio');
+
+  function holds(el, tiles) { return tiles.filter(function (t) { return el.contains(t); }).length; }
+
+  // Pages lean away and shrink slightly as they move off center, like leaves of a book
+  function tilt(box) {
+    if (still) return;
+    var br = box.getBoundingClientRect(), cx = br.left + br.width / 2;
+    [].forEach.call(box.querySelectorAll(PAGE), function (p) {
+      var r = p.getBoundingClientRect(), k = Math.max(-1, Math.min(1, (r.left + r.width / 2 - cx) / br.width * 2.2));
+      // A page that is itself the plate keeps its own hover tilt (Part 3), so it only fades.
+      // Both go through custom properties: Square's own inline styles on the page are never touched.
+      self.add(p);
+      if (has(p, 'leaf', F)) p.style.setProperty('--kc-lean', 'rotateY(' + (-k * 16).toFixed(2) + 'deg) scale(' + (1 - Math.abs(k) * 0.08).toFixed(3) + ')');
+      p.style.setProperty('--kc-fade', (1 - Math.abs(k) * 0.25).toFixed(3));
+    });
+  }
+  function step(box) {
+    var ps = box.querySelectorAll(PAGE);
+    return ps.length > 1 ? ps[1].getBoundingClientRect().left - ps[0].getBoundingClientRect().left : box.clientWidth * 0.8;
+  }
+  function arrows(box) {
+    var host = box.parentElement;
+    if (!host) return;
+    if (!box._kcBtns || !host.contains(box._kcBtns[0])) {
+      if (getComputedStyle(host).position === 'static') mark(host, 'rel');
+      box._kcBtns = ['\u2039', '\u203A'].map(function (ch, i) {
+        var b = D.createElement('button');
+        b.type = 'button';
+        b.className = 'kc-folio-btn';
+        b.textContent = ch;
+        b.setAttribute('aria-label', i ? 'Next plate' : 'Previous plate');
+        b.addEventListener('click', function () { box.scrollBy({ left: (i ? 1 : -1) * step(box), behavior: still ? 'auto' : 'smooth' }); });
+        host.appendChild(b);
+        return b;
+      });
+    }
+    var hr = host.getBoundingClientRect(), br = box.getBoundingClientRect(), top = Math.round(br.top - hr.top + br.height / 2 - 30);
+    box._kcBtns[0].style.top = box._kcBtns[1].style.top = top + 'px';
+    box._kcBtns[0].style.left = Math.round(br.left - hr.left + 10) + 'px';
+    box._kcBtns[1].style.left = Math.round(br.right - hr.left - 54) + 'px';
+    box._kcBtns[0].disabled = box.scrollLeft < 4;
+    box._kcBtns[1].disabled = box.scrollLeft > box.scrollWidth - box.clientWidth - 4;
+  }
+  function refresh(box) { tilt(box); arrows(box); }
+
+  // Puts one gallery back exactly as Square made it: only what this part wrote is taken back
+  function putBack(el, name, v) { if (v === null || v === undefined) el.removeAttribute(name); else el.setAttribute(name, v); }
+  function undo(box) {
+    var els = [box].concat([].slice.call(box.querySelectorAll('[' + F + ']')));
+    els.forEach(function (el) {
+      el.removeAttribute(F); el.removeAttribute('data-kc-ratio');
+      el.style.removeProperty('--kc-lean'); el.style.removeProperty('--kc-fade');
+    });
+    [].forEach.call(box.querySelectorAll('.kc-folio-no'), function (el) { el.parentNode.removeChild(el); });
+    if (box._kcBtns) box._kcBtns.forEach(function (b) { if (b.parentNode) b.parentNode.removeChild(b); });
+    box._kcBtns = null;
+    if (box._kcAttrs) { putBack(box, 'tabindex', box._kcAttrs[0]); putBack(box, 'aria-label', box._kcAttrs[1]); box._kcAttrs = null; }
+    box.setAttribute('data-kc-folio-off', '1');
+  }
+  // 'ok' when the spread is built and checked, 'wait' while its pictures are still arriving,
+  // 'no' when this gallery should stay as Square's grid
+  function build(box) {
+    var imgs = [].slice.call(box.getElementsByTagName('img'));
+    var tiles = [].filter.call(box.querySelectorAll('[data-kc~="tile"]'), function (t) { return !t.closest('.kc-lb'); });
+    if (imgs.length < 4) return 'no';
+    if (tiles.length !== imgs.length) {
+      // Plates are recognised once their pictures have arrived; a picture that has arrived and
+      // still has no size (hidden, or broken) means this is not a gallery to turn into a spread
+      var arriving = imgs.some(function (im) { return !im.complete; });
+      return arriving ? 'wait' : 'no';
+    }
+    // Every child of the gallery must hold exactly one plate; rows of plates are flattened
+    var pages = [], flats = [], skips = [], ok = true;
+    [].forEach.call(box.children, function (c) {
+      var n = holds(c, tiles);
+      if (n === 0) { if (c.textContent.trim()) ok = false; else skips.push(c); return; }
+      if (n === 1) { pages.push(c); return; }
+      flats.push(c);
+      [].forEach.call(c.children, function (g) {
+        var m = holds(g, tiles);
+        if (m === 1) pages.push(g); else if (m > 1 || g.textContent.trim()) ok = false; else skips.push(g);
+      });
+    });
+    if (!ok || pages.length !== tiles.length || pages.some(function (p) { return /^(IMG|PICTURE|VIDEO)$/.test(p.tagName); })) return 'no';
+    // Plate shape from the first picture (manuscript plates are tall pages)
+    var im0 = tiles[0].tagName === 'IMG' ? tiles[0] : tiles[0].querySelector('img'), ratio = 1.31;
+    if (im0 && im0.naturalWidth && im0.naturalHeight) ratio = Math.max(0.6, Math.min(2, im0.naturalHeight / im0.naturalWidth));
+    var rk = ratio.toFixed(3);
+    window.KCFOJ_rule('[data-kc-ratio="' + rk + '"]', '--kc-ratio:' + rk);
+    box.setAttribute('data-kc-ratio', rk);
+    mark(box, 'box', F);
+    if (!box._kcAttrs) box._kcAttrs = [box.getAttribute('tabindex'), box.getAttribute('aria-label')];
+    box.setAttribute('tabindex', '0');
+    box.setAttribute('aria-label', 'Plates, scroll sideways');
+    flats.forEach(function (f) { mark(f, 'flat', F); });
+    skips.forEach(function (s) { mark(s, 'skip', F); });
+    pages.forEach(function (p, i) {
+      mark(p, 'page', F);
+      if (has(p, 'tile')) return; // the plate itself: nothing can hang below it
+      mark(p, 'leaf', F);
+      // Make every wrapper between the page and its plate fill the page, so Square's fixed sizes let go
+      var t = tiles.filter(function (x) { return p.contains(x); })[0], chain = [];
+      for (var n = t.parentElement; n && n !== p; n = n.parentElement) chain.push(n);
+      var top = chain.length ? chain[chain.length - 1] : t;
+      chain.forEach(function (c) {
+        mark(c, c === top ? 'top' : 'fill', F);
+        if (c !== top && getComputedStyle(c).position === 'absolute') mark(c, 'abs', F);
+      });
+      if (t === top) mark(t, 'top', F);
+      var img = t.tagName === 'IMG' ? t : t.querySelector('img');
+      if (t !== top && t !== img) mark(t, 'fill', F);
+      if (img) mark(img, 'img', F);
+      var no = D.createElement('span');
+      no.className = 'kc-folio-no';
+      no.setAttribute('aria-hidden', 'true');
+      no.textContent = 'fol. ' + roman(i + 1, true);
+      p.appendChild(no);
+    });
+    // On wide screens, open on the second plate so the spread has a page on each side
+    if (pages.length > 2 && window.matchMedia && window.matchMedia('(min-width: 900px)').matches) {
+      self.add(box);
+      var sb = box.style.scrollBehavior;
+      box.style.scrollBehavior = 'auto';
+      box.scrollLeft = step(box);
+      box.style.scrollBehavior = sb;
+    }
+    // Self-check: every plate must fill at least half its page, or the grid comes back untouched
+    var bad = tiles.some(function (x) {
+      var pg = x.closest(PAGE), a = x.getBoundingClientRect().width, b = pg ? pg.getBoundingClientRect().width : 0;
+      return !b || a < b * 0.5;
+    });
+    if (bad) { undo(box); if (window.console) console.warn('KCFOJ folio: plates measured wrong, grid kept'); return 'no'; }
+    if (!box._kcScroll) {
+      box._kcScroll = true;
+      var ticking = false;
+      box.addEventListener('scroll', function () {
+        if (ticking || !has(box, 'box', F)) return;
+        ticking = true;
+        requestAnimationFrame(function () { ticking = false; refresh(box); });
+      }, { passive: true });
+    }
+    refresh(box);
+    return 'ok';
+  }
+  // Every picture in a built spread still sits on a page of its own
+  function intact(box) {
+    var imgs = box.getElementsByTagName('img');
+    if (!imgs.length || box.querySelectorAll(PAGE).length !== imgs.length) return false;
+    for (var i = 0; i < imgs.length; i++) if (!imgs[i].closest(PAGE)) return false;
+    return true;
+  }
+  function leftAsGrid() { if (window.KCFOJ_stats) window.KCFOJ_stats.leftAsGrid++; }
+  function attempt(box) {
+    var r = 'no';
+    try { r = build(box); } catch (e) { try { undo(box); } catch (e2) {} if (window.console) console.warn('KCFOJ folio:', e); }
+    return r;
+  }
+  function folio() {
+    var held = D.querySelectorAll('[data-kc-hold="1"]');
+    [].forEach.call(held, function (box) {
+      if (!on('folioViewer')) { box.setAttribute('data-kc-hold', 'done'); return; }
+      if (window.KCFOJ_watchHold) window.KCFOJ_watchHold(box);
+      var r = attempt(box);
+      if (r === 'wait') return;           // still hidden; Part 2 shows the grid if this takes too long
+      if (r === 'no') { box.setAttribute('data-kc-folio-off', '1'); leftAsGrid(); }
+      box.setAttribute('data-kc-hold', 'done');   // shown now, in its final state
+    });
+    [].forEach.call(D.querySelectorAll(BOX), function (box) {
+      if (intact(box)) { refresh(box); return; }
+      // Square redrew the plates: put its grid back, look at the plates again, and rebuild,
+      // all before the next frame. If the spread cannot be rebuilt at once, the grid stays.
+      undo(box);
+      box.removeAttribute('data-kc-folio-off');
+      if (window.KCFOJ_tiles) window.KCFOJ_tiles(box);
+      if (attempt(box) !== 'ok') {
+        undo(box); leftAsGrid();
+        if (window.console) console.info('KCFOJ folio: Square redrew the plates; its grid is shown');
+      }
+    });
+  }
+
+  var prev = window.KCFOJ_wow;
+  window.KCFOJ_wow = function () {
+    if (prev) prev();
+    try { folio(); } catch (e) { if (window.console) console.warn('KCFOJ folio:', e); }
+  };
+})();
 
 /* ===== Part 12: the colophon, Open at random, and the snail =====
    A last strip under the footer, as at the back of a book: who keeps it,
@@ -3178,152 +3228,4 @@ ${PAGE}{
 })();
 
 // end of kcfoj-polish v3.1.2
-// (padding: losing these last lines in a copy and paste does no harm)window.KCFOJ_style(`
-/* =========================================================
-   KCFOJ — MANUSCRIPT PLATE GALLERY
-   Two facing pages per row.
-   The existing full-screen folio viewer remains untouched.
-   ========================================================= */
-
-
-/* ----- THE GALLERY / TABLE OF PLATES ----- */
-
-${BOX},
-[data-block-purpose^="gallery"] .image-gallery > .grid{
-  box-sizing:border-box!important;
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  width:min(100%,760px)!important;
-  max-width:760px!important;
-  height:auto!important;
-  margin:0 auto!important;
-  padding:24px clamp(8px,2.4vw,18px) 38px!important;
-  column-gap:clamp(7px,1.5vw,14px)!important;
-  row-gap:clamp(26px,5vw,46px)!important;
-  align-items:start!important;
-  overflow:visible!important;
-  overflow-x:visible!important;
-  overflow-y:visible!important;
-  scroll-snap-type:none!important;
-  scroll-behavior:auto!important;
-  overscroll-behavior:auto!important;
-  perspective:none!important;
-  -webkit-mask-image:none!important;
-  mask-image:none!important;
-  scrollbar-width:none;
-}
-
-${BOX}::-webkit-scrollbar{
-  display:none;
-}
-
-
-/* ----- SQUARE'S ORIGINAL GALLERY FALLBACK ----- */
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) > .image-cell{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:auto!important;
-  min-height:0!important;
-  aspect-ratio:0.765;
-  margin:0!important;
-  padding:0!important;
-  position:relative!important;
-  transform:none!important;
-  opacity:1!important;
-  overflow:visible!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) > .image-cell:nth-child(odd){
-  transform:rotate(.22deg)!important;
-  transform-origin:100% 50%!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) > .image-cell:nth-child(even){
-  transform:rotate(-.22deg)!important;
-  transform-origin:0 50%!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.image-cell > .image-wrapper,
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.image-cell > .image-wrapper > .w-wrapper.image-wrapper{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  position:relative!important;
-  inset:auto!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-  padding:0!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.inner-image-wrapper{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  position:relative!important;
-  inset:auto!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"])
-.inner-image-wrapper > .image{
-  box-sizing:border-box!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  position:relative!important;
-  inset:auto!important;
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-width:none!important;
-  max-height:none!important;
-  margin:0!important;
-}
-
-[data-block-purpose^="gallery"]
-.image-gallery > .grid:not([data-kc-f~="box"]) img{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  max-width:100%!important;
-  max-height:100%!important;
-  object-fit:contain!important;
-  object-position:50% 50%!important;
-  aspect-ratio:auto!important;
-  margin:0 auto!important;
-  border-radius:2px!important;
-  transform:none!important;
-}
-
-
+// (padding: losing these last lines in a copy and paste does no harm)
