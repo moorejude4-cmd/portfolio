@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.2.1, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.2.2, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -329,20 +329,18 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px s
 /* Vellum instead of gray or white, with a faint paper grain; a calm header */
 [data-kc~="cream"]{background-color:var(--kc-cream)!important}
 [data-kc~="grain"]{background-image:var(--kc-grain)!important;background-size:240px 240px!important;background-repeat:repeat!important}
-/* Header as a Red Book threshold.
-   Target Square's stable header block directly so this layer cannot hide
-   behind Square's internal header backgrounds. */
+/* Header: Red Book cover edge -> vellum page -> soft entry into hero.
+   Keep the oxblood as a deliberate top edge, not a fog through the navigation. */
 [data-kc~="header"],
 [data-block-purpose="header"]{
   position:relative!important;
   overflow:visible!important;
-  background-color:var(--kc-cream)!important;
+  background:var(--kc-cream)!important;
   border-bottom:0!important;
   box-shadow:none!important;
 }
 
-/* Oxblood leather at the very top. This sits above Square's own header
-   layers, then fades away into vellum before it reaches the navigation. */
+/* A narrow leather cover edge at the very top. */
 [data-block-purpose="header"]::before{
   content:"";
   position:absolute;
@@ -351,56 +349,45 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px s
   top:0;
   left:0;
   right:0;
-  height:58px;
+  height:24px;
   background-color:#741F1B;
   background-image:
-    linear-gradient(to bottom,rgba(35,7,6,.34),rgba(116,31,27,.06)),
+    linear-gradient(to bottom,rgba(35,7,6,.26),rgba(116,31,27,.02)),
     var(--kc-leather);
   background-size:auto,260px 260px;
   background-repeat:no-repeat,repeat;
-  box-shadow:inset 0 -1px 0 rgba(168,132,79,.18);
-  -webkit-mask-image:linear-gradient(
-    to bottom,
-    #000 0,
-    #000 28%,
-    rgba(0,0,0,.92) 42%,
-    rgba(0,0,0,.55) 62%,
-    rgba(0,0,0,.18) 82%,
-    transparent 100%
-  );
-  mask-image:linear-gradient(
-    to bottom,
-    #000 0,
-    #000 28%,
-    rgba(0,0,0,.92) 42%,
-    rgba(0,0,0,.55) 62%,
-    rgba(0,0,0,.18) 82%,
-    transparent 100%
-  );
+  box-shadow:
+    inset 0 -1px 0 rgba(168,132,79,.34),
+    0 1px 0 rgba(255,255,255,.16);
 }
 
-/* The vellum dissolves into the hero instead of ending on a hard edge. */
+/* The vellum page simply dissolves into the hero at the bottom. */
 [data-block-purpose="header"]::after{
   content:"";
   position:absolute;
-  z-index:50;
+  z-index:40;
   pointer-events:none;
   left:0;
   right:0;
-  bottom:-34px;
-  height:36px;
+  bottom:-22px;
+  height:24px;
   background:linear-gradient(
     to bottom,
     rgba(244,237,225,.96) 0,
-    rgba(244,237,225,.76) 28%,
-    rgba(244,237,225,.34) 62%,
+    rgba(244,237,225,.70) 32%,
+    rgba(244,237,225,.24) 70%,
     rgba(244,237,225,0) 100%
   );
 }
 
 @media (max-width:760px){
-  [data-block-purpose="header"]::before{height:54px}
-  [data-block-purpose="header"]::after{bottom:-30px;height:32px}
+  [data-block-purpose="header"]::before{
+    height:22px;
+  }
+  [data-block-purpose="header"]::after{
+    bottom:-18px;
+    height:20px;
+  }
 }
 
 [data-kc~="rel"]{position:relative!important}
@@ -2098,7 +2085,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.2.1',
+    version: '3.2.2',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
