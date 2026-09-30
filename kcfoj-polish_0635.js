@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.2.0, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.2.1, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -329,62 +329,61 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px s
 /* Vellum instead of gray or white, with a faint paper grain; a calm header */
 [data-kc~="cream"]{background-color:var(--kc-cream)!important}
 [data-kc~="grain"]{background-image:var(--kc-grain)!important;background-size:240px 240px!important;background-repeat:repeat!important}
-/* Header as book-cover threshold: oxblood leather at the top, vellum through
-   the navigation, then a soft fade into the first page/hero instead of a hard block. */
-[data-kc~="header"]{
+/* Header as a Red Book threshold.
+   Target Square's stable header block directly so this layer cannot hide
+   behind Square's internal header backgrounds. */
+[data-kc~="header"],
+[data-block-purpose="header"]{
   position:relative!important;
-  isolation:isolate!important;
   overflow:visible!important;
-  background:
-    linear-gradient(
-      to bottom,
-      #681815 0,
-      #7D231E 30px,
-      rgba(139,42,36,.86) 42px,
-      rgba(244,237,225,.98) 78px,
-      rgba(244,237,225,.97) 100%
-    )!important;
+  background-color:var(--kc-cream)!important;
   border-bottom:0!important;
   box-shadow:none!important;
 }
-[data-kc~="header"]::before{
+
+/* Oxblood leather at the very top. This sits above Square's own header
+   layers, then fades away into vellum before it reaches the navigation. */
+[data-block-purpose="header"]::before{
   content:"";
   position:absolute;
-  z-index:0;
+  z-index:50;
   pointer-events:none;
   top:0;
   left:0;
   right:0;
-  height:78px;
-  background-color:#76201C;
+  height:58px;
+  background-color:#741F1B;
   background-image:
-    linear-gradient(to bottom,rgba(35,7,6,.28),rgba(116,31,27,.06)),
+    linear-gradient(to bottom,rgba(35,7,6,.34),rgba(116,31,27,.06)),
     var(--kc-leather);
   background-size:auto,260px 260px;
   background-repeat:no-repeat,repeat;
-  box-shadow:inset 0 -1px 0 rgba(168,132,79,.28);
-  opacity:.96;
+  box-shadow:inset 0 -1px 0 rgba(168,132,79,.18);
   -webkit-mask-image:linear-gradient(
     to bottom,
     #000 0,
-    #000 35%,
-    rgba(0,0,0,.88) 54%,
-    rgba(0,0,0,.34) 78%,
+    #000 28%,
+    rgba(0,0,0,.92) 42%,
+    rgba(0,0,0,.55) 62%,
+    rgba(0,0,0,.18) 82%,
     transparent 100%
   );
   mask-image:linear-gradient(
     to bottom,
     #000 0,
-    #000 35%,
-    rgba(0,0,0,.88) 54%,
-    rgba(0,0,0,.34) 78%,
+    #000 28%,
+    rgba(0,0,0,.92) 42%,
+    rgba(0,0,0,.55) 62%,
+    rgba(0,0,0,.18) 82%,
     transparent 100%
   );
 }
-[data-kc~="header"]::after{
+
+/* The vellum dissolves into the hero instead of ending on a hard edge. */
+[data-block-purpose="header"]::after{
   content:"";
   position:absolute;
-  z-index:0;
+  z-index:50;
   pointer-events:none;
   left:0;
   right:0;
@@ -392,36 +391,18 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px s
   height:36px;
   background:linear-gradient(
     to bottom,
-    rgba(244,237,225,.97) 0,
-    rgba(244,237,225,.72) 34%,
-    rgba(244,237,225,.26) 70%,
+    rgba(244,237,225,.96) 0,
+    rgba(244,237,225,.76) 28%,
+    rgba(244,237,225,.34) 62%,
     rgba(244,237,225,0) 100%
   );
 }
-[data-kc~="header"]>*{
-  position:relative!important;
-  z-index:1!important;
-}
+
 @media (max-width:760px){
-  [data-kc~="header"]{
-    background:
-      linear-gradient(
-        to bottom,
-        #611512 0,
-        #7B211D 34px,
-        rgba(139,42,36,.83) 48px,
-        rgba(244,237,225,.98) 86px,
-        rgba(244,237,225,.97) 100%
-      )!important;
-  }
-  [data-kc~="header"]::before{
-    height:86px;
-  }
-  [data-kc~="header"]::after{
-    bottom:-30px;
-    height:32px;
-  }
+  [data-block-purpose="header"]::before{height:54px}
+  [data-block-purpose="header"]::after{bottom:-30px;height:32px}
 }
+
 [data-kc~="rel"]{position:relative!important}
 /* Held for an instant while a color is repainted, so Square's own transitions never show a fade */
 [data-kc-now],[data-kc-now="deep"] *{transition:none!important}
@@ -2117,7 +2098,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.2.0',
+    version: '3.2.1',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
