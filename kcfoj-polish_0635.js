@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.7, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.1.9, stabilization)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -350,63 +350,93 @@ ${BTN} *,${OUT} *{color:inherit!important;font-family:inherit!important}
 [data-kc~="card"]{border:1px solid var(--kc-rule)!important;border-radius:var(--kc-radius)!important;overflow:hidden!important;background-color:var(--kc-card)!important;box-shadow:var(--kc-shadow)!important;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
 [data-kc~="pill"]{background-color:rgba(139,42,36,.08)!important;color:var(--kc-accent)!important;font-family:var(--kc-mono)!important;letter-spacing:.08em!important;border-radius:1px!important}
 [data-kc~="tile"]{border-radius:var(--kc-radius)!important;box-shadow:var(--kc-shadow)!important;outline:1px solid rgba(168,132,79,.38);outline-offset:-7px;transition:transform .5s var(--kc-ease),box-shadow .5s var(--kc-ease)!important}
-iframe[src*="youtube"],iframe[src*="vimeo"]{border-radius:2px!important;box-shadow:none!important}
+iframe[src*="youtube"],iframe[src*="vimeo"]{border-radius:1px!important;box-shadow:none!important}
 
-/* Moving plate: gives Square's video player the same manuscript language as the gallery */
+/* Video mount: the player sits on a slightly skewed vellum leaf with four small
+   manuscript corner marks. No label, caption, border or box-outline around the video. */
 [data-block-purpose^="video"] .w-video{
   position:relative!important;
+  isolation:isolate!important;
   overflow:visible!important;
-  border:1px solid var(--kc-accent)!important;
-  outline:1px solid rgba(168,132,79,.62)!important;
-  outline-offset:7px!important;
-  border-radius:2px!important;
-  background:#171310!important;
-  box-shadow:0 20px 45px -24px rgba(20,12,10,.62)!important;
-  transition:transform .45s var(--kc-ease),box-shadow .45s var(--kc-ease)!important;
+  margin:12px 0 24px!important;
+  border:0!important;
+  outline:0!important;
+  border-radius:1px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transition:transform .4s var(--kc-ease)!important;
 }
 [data-block-purpose^="video"] .w-video::before{
-  content:"A moving image";
-  position:absolute;
-  left:0;
-  top:-34px;
-  z-index:3;
-  pointer-events:none;
-  color:var(--kc-accent);
-  font:500 10px/1.2 var(--kc-mono);
-  letter-spacing:.2em;
-  text-transform:uppercase;
+  content:""!important;
+  position:absolute!important;
+  inset:-10px!important;
+  z-index:0!important;
+  pointer-events:none!important;
+  background-color:rgba(251,247,240,.72)!important;
+  background-image:var(--kc-grain)!important;
+  background-size:240px 240px!important;
+  border-radius:2px!important;
+  box-shadow:0 18px 42px -25px rgba(20,12,10,.62),0 1px 0 rgba(255,255,255,.55)!important;
+  transform:rotate(-.18deg)!important;
+  transform-origin:50% 50%!important;
+  transition:transform .45s var(--kc-ease),box-shadow .45s var(--kc-ease)!important;
 }
 [data-block-purpose^="video"] .w-video::after{
-  content:"Plate in motion · Kansas City Friends of Jung";
-  position:absolute;
-  right:0;
-  bottom:-32px;
-  z-index:3;
-  pointer-events:none;
-  color:var(--kc-ink-soft);
-  font:italic 400 13px/1.3 var(--kc-serif);
-  letter-spacing:.02em;
+  content:""!important;
+  position:absolute!important;
+  inset:-14px!important;
+  z-index:2!important;
+  pointer-events:none!important;
+  background:
+    linear-gradient(var(--kc-gold),var(--kc-gold)) left top/28px 1px no-repeat,
+    linear-gradient(var(--kc-gold),var(--kc-gold)) left top/1px 28px no-repeat,
+    linear-gradient(var(--kc-gold),var(--kc-gold)) right top/28px 1px no-repeat,
+    linear-gradient(var(--kc-gold),var(--kc-gold)) right top/1px 28px no-repeat,
+    linear-gradient(var(--kc-accent),var(--kc-accent)) left bottom/22px 1px no-repeat,
+    linear-gradient(var(--kc-accent),var(--kc-accent)) left bottom/1px 22px no-repeat,
+    linear-gradient(var(--kc-accent),var(--kc-accent)) right bottom/22px 1px no-repeat,
+    linear-gradient(var(--kc-accent),var(--kc-accent)) right bottom/1px 22px no-repeat!important;
+  opacity:.72!important;
 }
 [data-block-purpose^="video"] .w-video iframe{
+  z-index:1!important;
+  border:0!important;
+  outline:0!important;
   border-radius:1px!important;
+  box-shadow:0 1px 0 rgba(31,26,23,.08)!important;
 }
+.kc-video-rubric{display:none!important}
 @media (hover:hover) and (pointer:fine){
   [data-block-purpose^="video"] .w-video:hover{
-    transform:translateY(-2px)!important;
-    box-shadow:0 24px 54px -24px rgba(20,12,10,.7)!important;
+    transform:translateY(-1px)!important;
+  }
+  [data-block-purpose^="video"] .w-video:hover::before{
+    transform:rotate(-.18deg) translateY(-1px)!important;
+    box-shadow:0 22px 48px -24px rgba(20,12,10,.7),0 1px 0 rgba(255,255,255,.55)!important;
   }
 }
 @media (max-width:760px){
-  [data-block-purpose^="video"] .w-video{outline-offset:5px!important}
-  [data-block-purpose^="video"] .w-video::before{top:-28px;font-size:9px}
+  [data-block-purpose^="video"] .w-video{
+    margin:10px 0 20px!important;
+  }
+  [data-block-purpose^="video"] .w-video::before{
+    inset:-7px!important;
+  }
   [data-block-purpose^="video"] .w-video::after{
-    bottom:-28px;
-    left:0;
-    right:auto;
-    font-size:12px;
+    inset:-10px!important;
+    background:
+      linear-gradient(var(--kc-gold),var(--kc-gold)) left top/20px 1px no-repeat,
+      linear-gradient(var(--kc-gold),var(--kc-gold)) left top/1px 20px no-repeat,
+      linear-gradient(var(--kc-gold),var(--kc-gold)) right top/20px 1px no-repeat,
+      linear-gradient(var(--kc-gold),var(--kc-gold)) right top/1px 20px no-repeat,
+      linear-gradient(var(--kc-accent),var(--kc-accent)) left bottom/16px 1px no-repeat,
+      linear-gradient(var(--kc-accent),var(--kc-accent)) left bottom/1px 16px no-repeat,
+      linear-gradient(var(--kc-accent),var(--kc-accent)) right bottom/16px 1px no-repeat,
+      linear-gradient(var(--kc-accent),var(--kc-accent)) right bottom/1px 16px no-repeat!important;
   }
 }
-.kc-still [data-block-purpose^="video"] .w-video{transition:none!important}
+.kc-still [data-block-purpose^="video"] .w-video,
+.kc-still [data-block-purpose^="video"] .w-video::before{transition:none!important}
 
 /* A plate gallery waits out of sight (its space kept) while it becomes a folio spread.
    Part 2 lets it go after 2.6 seconds at most, shown as Square made it. Everything inside
@@ -1995,7 +2025,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.1.7',
+    version: '3.1.9',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
@@ -2996,7 +3026,7 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
 [data-kc-f~="top"]{flex:0 0 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:calc(var(--kc-page) * var(--kc-ratio,1.31))!important;max-height:none!important;min-height:0!important;margin:0!important;position:relative!important}
 [data-kc-f~="fill"]{flex:1 1 auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:100%!important;max-height:none!important;min-height:0!important;margin:0!important}
 [data-kc-f~="abs"]{position:absolute!important;inset:0!important}
-[data-kc-f~="img"]{width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:50% 50%!important;aspect-ratio:auto!important}
+[data-kc-f~="img"]{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:50% 50%!important;aspect-ratio:auto!important}\n${BOX} .mimage-lazyLoad,${BOX} .mimage-lazyLoad img{visibility:visible!important;opacity:1!important}
 .kc-folio-no{display:block;margin-top:14px;text-align:center;font:italic 400 14px/1 var(--kc-serif);letter-spacing:.08em;color:var(--kc-accent);opacity:.8;pointer-events:none}
 .kc-folio-btn{position:absolute;z-index:3;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--kc-gold);border-radius:50%;background:var(--kc-card);color:var(--kc-accent);font:400 26px/1 Georgia,serif;cursor:pointer;box-shadow:0 8px 20px -10px rgba(20,12,10,.5);transition:opacity .3s ease}
 .kc-folio-btn[disabled]{opacity:0;pointer-events:none}
@@ -3064,22 +3094,46 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
     if (box._kcAttrs) { putBack(box, 'tabindex', box._kcAttrs[0]); putBack(box, 'aria-label', box._kcAttrs[1]); box._kcAttrs = null; }
     box.setAttribute('data-kc-folio-off', '1');
   }
+  function realPlateImage(im) {
+    if (!im) return false;
+    var src = im.currentSrc || im.getAttribute('src') || '';
+    return !!(im.complete && im.naturalWidth && src && !/^data:image\/svg\+xml/i.test(src));
+  }
+  function wakePlateImages(imgs) {
+    imgs.forEach(function (im) {
+      try {
+        im.loading = 'eager';
+        im.setAttribute('loading', 'eager');
+        im.setAttribute('fetchpriority', 'high');
+      } catch (e) {}
+      // If Square exposes a conventional lazy-source attribute, promote it now.
+      var a = ['data-src', 'data-lazy-src', 'data-original', 'data-image-src'];
+      for (var i = 0; i < a.length; i++) {
+        var u = im.getAttribute(a[i]);
+        if (u && !/^data:/i.test(u)) {
+          if ((im.currentSrc || im.src || '').indexOf(u) < 0) im.src = u;
+          break;
+        }
+      }
+    });
+  }
+
   // 'ok' when the spread is built and checked, 'wait' while its pictures are still arriving,
   // 'no' when this gallery should stay as Square's grid
   function build(box) {
     var imgs = [].slice.call(box.getElementsByTagName('img'));
-    var tiles = [].filter.call(box.querySelectorAll('[data-kc~="tile"]'), function (t) { return !t.closest('.kc-lb'); });
+    wakePlateImages(imgs);
     if (imgs.length < 4) return 'no';
+    // Square initially paints some gallery images as SVG placeholders. If the folio is
+    // built at that moment, those off-axis pages can stay blank forever. Wait until
+    // Square has supplied the real image source for every plate.
+    if (imgs.some(function (im) { return !realPlateImage(im); })) return 'wait';
+    var tiles = [].filter.call(box.querySelectorAll('[data-kc~="tile"]'), function (t) { return !t.closest('.kc-lb'); });
     if (tiles.length !== imgs.length && window.KCFOJ_tiles) {
       window.KCFOJ_tiles(box);
       tiles = [].filter.call(box.querySelectorAll('[data-kc~="tile"]'), function (t) { return !t.closest('.kc-lb'); });
     }
-    if (tiles.length !== imgs.length) {
-      // Plates are recognised once their pictures have arrived; a picture that has arrived and
-      // still has no size (hidden, or broken) means this is not a gallery to turn into a spread
-      var arriving = imgs.some(function (im) { return !im.complete; });
-      return arriving ? 'wait' : 'no';
-    }
+    if (tiles.length !== imgs.length) return 'no';
     // Every child of the gallery must hold exactly one plate; rows of plates are flattened
     var pages = [], flats = [], skips = [], ok = true;
     [].forEach.call(box.children, function (c) {
@@ -3175,7 +3229,8 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
         if (has(box, 'box', F)) return;
         var imgs = [].slice.call(box.getElementsByTagName('img'));
         var cells = [].slice.call(box.children).filter(function (c) { return c.querySelectorAll && c.querySelectorAll('img').length === 1; });
-        if (imgs.length < 4 || cells.length !== imgs.length || imgs.some(function (im) { return !im.complete; })) return;
+        wakePlateImages(imgs);
+        if (imgs.length < 4 || cells.length !== imgs.length || imgs.some(function (im) { return !realPlateImage(im); })) return;
 
         // This is Square's explicit gallery block, so a stale/transient "off" classification
         // must never permanently block the folio treatment.
