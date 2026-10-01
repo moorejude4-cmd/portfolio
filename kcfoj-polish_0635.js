@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.3.1, archive resources)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.4.4, final polish)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -40,6 +40,7 @@
    Add #kcdebug to a page address to see how the band under the banner was placed. */
 window.KCFOJ_SKIP = !!window.KCFOJ_RUNNING;
 window.KCFOJ_RUNNING = true;
+window.KCFOJ_VERSION = '3.4.4';
 
 
 /* ===== Part 0: words and switches you can edit ===== */
@@ -71,7 +72,7 @@ window.KCFOJ_WORDS = {
     quoteRotation: true,     // a different night-page quote on later visits
     colophon: true,          // the strip under the footer, with Open at random
     drollerie: true,         // the snail in the colophon
-    archivePrograms: true    // turns past event/product pages already referenced by the site into archive resources
+    archivePrograms: true    // turns resources explicitly marked past into archive pages
   },
   corners: 2,                              // button and card corners in px (v2.6 used 8)
   name: 'Kansas City Friends of Jung',
@@ -84,30 +85,72 @@ window.KCFOJ_WORDS = {
   quote: 'Who looks outside, dreams; who looks inside, awakes.',
   by: 'C. G. Jung',
 
-  /* Past-program archive (Part 13). Every /product/ page already referenced by
-     the Living Margin below is treated as part of the KCFOJ past-program archive.
-     Part 13 builds its archive title, Jungian themes and related paths directly
-     from those existing cross-references, so this is one system rather than a
-     separate hand-maintained list. archivePrograms is only for optional metadata
-     or overrides when we know more about a particular program. */
-  archivePrograms: {
-    '/product/the-warrior-s-return-jungian-psychology-the-odyssey-as-a-roadmap-to-guide-our-veterans-home/30': {
-      date: 'November 8, 2024',
-      speaker: 'Adam Magers'
-    }
-  },
+
+  /* Resource registry. This is the single source of truth for the Living Margin
+     and the archive layer. Each resource carries its own type/status/themes, so
+     margin labels never become page titles and a future /product/ link can stay live.
+     Dates are ISO when known. reviewed=true means the archive metadata itself has
+     been checked; images stay pending until their reuse/permission is reviewed. */
+  resources: [
+    { url: '/product/active-imagination-conversation-with-soul/19',
+      type: 'program', status: 'past',
+      title: 'Active Imagination: Conversation with Soul', short: 'Active Imagination: Conversation with Soul',
+      themes: ['Active imagination'], feature: ['Active imagination'], reviewed: false, images: 'pending' },
+    { url: '/product/orphic-mythology-underworld-journeys-and-active-imagination/KSBPXSIMT3DB3N5SHGUTWXVY',
+      type: 'program', status: 'past', date: '2026-04-24', speaker: 'Emily Lord-Kambitsch, PhD',
+      title: 'Orphic Mythology, Underworld Journeys and Active Imagination', short: 'Orphic Mythology, Underworld Journeys and Active Imagination',
+      themes: ['Active imagination'], feature: ['Active imagination'], reviewed: true, images: 'pending' },
+    { url: '/product/working-with-dreams-an-introduction-to-the-unconscious-webinar-/GP2JAPZKKYVMDRR274QBD537',
+      type: 'program', status: 'past', date: '2026-05-31',
+      title: 'Working with Dreams: An Introduction to the Unconscious', short: 'Working with Dreams: An Introduction to the Unconscious',
+      themes: ['The unconscious', 'Dreams'], feature: ['The unconscious', 'Dreams'], reviewed: true, images: 'pending' },
+    { url: '/product/jung-s-relationship-to-astrology-with-becca-tarnas-phd/XJWPVL75V3HHF3NDFAG7MOG6',
+      type: 'program', status: 'past', date: '2025-09-26', speaker: 'Becca Tarnas, PhD',
+      title: 'Jung’s Relationship to Astrology', short: 'Jung’s Relationship to Astrology, with Becca Tarnas',
+      themes: ['The Red Book'], feature: ['The Red Book'], reviewed: true, images: 'pending' },
+    { url: '/s/stories/darkness-as-a-mirror-discovering-ourselves-in-the-shadow',
+      type: 'story', status: 'published',
+      title: 'Darkness as a Mirror: Discovering Ourselves in the Shadow', short: 'Darkness as a Mirror: Discovering Ourselves in the Shadow',
+      themes: ['Shadow'], feature: ['Shadow'] },
+    { url: '/product/engaging-the-individuation-process-in-moments-of-everyday-living-with-marty-dybicz-ph-d-/34',
+      type: 'program', status: 'past', date: '2025-02-28', speaker: 'Marty Dybicz, PhD',
+      title: 'Engaging the Individuation Process in Moments of Everyday Living', short: 'Engaging the Individuation Process in Moments of Everyday Living',
+      themes: ['Individuation'], feature: ['Individuation'], reviewed: true, images: 'pending' },
+    { url: '/product/re-membering-your-soul-in-times-of-chaos-how-mandala-creation-and-shamanism-show-us-a-way/33',
+      type: 'program', status: 'past',
+      title: 'Re-membering Your Soul in Times of Chaos: How Mandala Creation and Shamanism Show Us a Way', short: 'Re-membering Your Soul in Times of Chaos',
+      themes: ['Mandala'], feature: ['Mandala'], reviewed: false, images: 'pending' },
+    { url: '/product/the-alchemical-heart-part-i-mystical-psychology-and-the-path-of-the-universal-person-with-david-odorisio-ph-d-/37',
+      type: 'program', status: 'past', date: '2025-07-25', speaker: 'David Odorisio, PhD',
+      title: 'The Alchemical Heart, Part I: Mystical Psychology and the Path of the Universal Person', short: 'The Alchemical Heart, Part I',
+      themes: ['Alchemy'], feature: ['Alchemy'], reviewed: true, images: 'pending' },
+    { url: '/product/the-alchemical-heart-part-ii-inner-alchemy-and-the-emergence-of-the-universal-person-facilitated-by-david-odorisio-ph-d-/38',
+      type: 'program', status: 'past', date: '2025-07-26', speaker: 'David Odorisio, PhD',
+      title: 'The Alchemical Heart, Part II: Inner Alchemy and the Emergence of the Universal Person', short: 'The Alchemical Heart, Part II',
+      themes: ['Alchemy'], feature: [], reviewed: true, images: 'pending' },
+    { url: '/product/bargaining-with-the-daimon-in-the-age-of-ai/BDCEI4AVW3JM2URS5MFDWV7B',
+      type: 'program', status: 'past', date: '2026-09-25', speaker: 'David Strabala, MSW, MA, LCSW',
+      title: 'Bargaining with the Daimon in the Age of AI', short: 'Bargaining with the Daimon in the Age of AI',
+      themes: ['Daimon'], feature: ['Daimon'], reviewed: true, images: 'pending' },
+    { url: '/product/the-warrior-s-return-jungian-psychology-the-odyssey-as-a-roadmap-to-guide-our-veterans-home/30',
+      type: 'program', status: 'past', date: '2024-11-08', speaker: 'Adam Magers',
+      title: 'The Warrior’s Return: Jungian Psychology & The Odyssey as a Roadmap to Guide our Veterans Home', short: 'The Warrior’s Return: Jungian Psychology and the Odyssey',
+      themes: ['Myth'], feature: ['Myth'], reviewed: true, images: 'pending' },
+    { url: '/s/stories/the-persephone-experience',
+      type: 'story', status: 'published',
+      title: 'The Persephone Experience', short: 'The Persephone Experience',
+      themes: ['Myth'], feature: ['Myth'] }
+  ],
 
   /* The Living Margin (Part 9). Each entry: the word as shown, the pattern
-     that finds it in body text, a plain-language gloss, and pages on this
-     site where it came up ("at": [title, address]). Longer phrases come
+     that finds it in body text, a plain-language gloss. Links to KCFOJ programs/stories are derived from the
+     resource registry above. Longer phrases come
      first so "collective unconscious" wins over "the unconscious". */
   lexicon: [
     { term: 'Collective unconscious', find: /\bcollective unconscious\b/i,
       def: 'The deepest layer of the psyche, shared by everyone and not built from personal experience. For Jung it is the home of the archetypes.' },
     { term: 'Active imagination', find: /\bactive imagination\b/i,
-      def: 'Jung\u2019s method of meeting the images of the unconscious while awake: letting a figure or scene unfold, then answering it as if it were real. Much of the Red Book began this way.',
-      at: [['Active Imagination: Conversation with Soul', '/product/active-imagination-conversation-with-soul/19'],
-           ['Orphic Mythology, Underworld Journeys and Active Imagination', '/product/orphic-mythology-underworld-journeys-and-active-imagination/KSBPXSIMT3DB3N5SHGUTWXVY']] },
+      def: 'Jung\u2019s method of meeting the images of the unconscious while awake: letting a figure or scene unfold, then answering it as if it were real. Much of the Red Book began this way.' },
     { term: 'Transcendent function', find: /\btranscendent function\b/i,
       def: 'What can emerge when conscious and unconscious attitudes are held in tension long enough: a third thing, often a symbol, that carries a person forward.' },
     { term: 'Depth psychology', find: /\bdepth psycholog(?:y|ist|ists)\b/i,
@@ -115,14 +158,11 @@ window.KCFOJ_WORDS = {
     { term: 'Analytical psychology', find: /\banalytical psychology\b/i,
       def: 'The name Jung gave his own school, to set it apart from Freud\u2019s psychoanalysis.' },
     { term: 'The unconscious', find: /\bthe unconscious\b/i,
-      def: 'Everything in the psyche that is active but outside awareness. For Jung it holds not only what we have forgotten or pushed away, but also what has not yet become conscious.',
-      at: [['Working with Dreams: An Introduction to the Unconscious', '/product/working-with-dreams-an-introduction-to-the-unconscious-webinar-/GP2JAPZKKYVMDRR274QBD537']] },
+      def: 'Everything in the psyche that is active but outside awareness. For Jung it holds not only what we have forgotten or pushed away, but also what has not yet become conscious.' },
     { term: 'The Red Book', find: /\b(?:Red Book|Liber Novus)\b/,
-      def: 'Jung\u2019s private illuminated manuscript: the record of his confrontation with the unconscious, begun in 1913 and worked on until about 1930. It was first published in 2009.',
-      at: [['Jung\u2019s Relationship to Astrology, with Becca Tarnas', '/product/jung-s-relationship-to-astrology-with-becca-tarnas-phd/XJWPVL75V3HHF3NDFAG7MOG6']] },
+      def: 'Jung\u2019s private illuminated manuscript: the record of his confrontation with the unconscious, begun in 1913 and worked on until about 1930. It was first published in 2009.' },
     { term: 'Shadow', find: /\bshadows?\b/i,
-      def: 'The parts of ourselves we do not see or would rather not own, the unwelcome and the unlived alike. Left unacknowledged, they tend to meet us in other people.',
-      at: [['Darkness as a Mirror: Discovering Ourselves in the Shadow', '/s/stories/darkness-as-a-mirror-discovering-ourselves-in-the-shadow']] },
+      def: 'The parts of ourselves we do not see or would rather not own, the unwelcome and the unlived alike. Left unacknowledged, they tend to meet us in other people.' },
     { term: 'Persona', find: /\bpersonas?\b/i,
       def: 'The face we turn toward the world: a necessary social role that becomes a trap only when we mistake it for the whole of who we are.' },
     { term: 'Anima', find: /\banima\b/i,
@@ -132,8 +172,7 @@ window.KCFOJ_WORDS = {
     { term: 'Archetype', find: /\barchetyp(?:e|es|al)\b/i,
       def: 'An inborn pattern of experience, such as the mother, the hero or the trickster, that takes shape in images across cultures and centuries.' },
     { term: 'Individuation', find: /\bindividuat(?:ion|ing|ed|e)\b/i,
-      def: 'The lifelong process of becoming the whole person one is, by bringing what was unconscious into awareness.',
-      at: [['Engaging the Individuation Process in Moments of Everyday Living', '/product/engaging-the-individuation-process-in-moments-of-everyday-living-with-marty-dybicz-ph-d-/34']] },
+      def: 'The lifelong process of becoming the whole person one is, by bringing what was unconscious into awareness.' },
     { term: 'The Self', find: /\b[Tt]he Self\b/,
       def: 'The center and the whole of the psyche, larger than the ego. Jung found it pictured in images of wholeness: the circle, the mandala, the divine child.' },
     { term: 'Ego', find: /\bego\b/i,
@@ -142,29 +181,22 @@ window.KCFOJ_WORDS = {
       def: 'Seeing in someone else a quality that belongs, unrecognized, to ourselves. Unusual fascination or irritation is often the clue.' },
     { term: 'Synchronicity', find: /\bsynchronicit(?:y|ies)\b/i,
       def: 'Jung\u2019s word for a meaningful coincidence: events linked by meaning rather than cause. His best-known example is a scarab-like beetle that flew against his window as a patient told him her dream of a golden scarab.' },
-    { term: 'Psyche', find: /\bpsyches?\b/i,
+    { term: 'Psyche', find: /\bpsyches?\b/,
       def: 'Jung\u2019s word for the whole of inner life, conscious and unconscious together, which he treated as real in its own right.' },
     { term: 'Mandala', find: /\bmandalas?\b/i,
-      def: 'A circular image arranged around a center. In 1918 and 1919 Jung sketched one nearly every morning, and came to see them as pictures of the Self.',
-      at: [['Re-membering Your Soul in Times of Chaos', '/product/re-membering-your-soul-in-times-of-chaos-how-mandala-creation-and-shamanism-show-us-a-way/33']] },
+      def: 'A circular image arranged around a center. In 1918 and 1919 Jung sketched one nearly every morning, and came to see them as pictures of the Self.' },
     { term: 'Alchemy', find: /\balchem(?:y|ical|ist|ists)\b/i,
-      def: 'The old art of turning base matter into gold. Jung read its strange images as a map of psychological transformation, and studied its texts for decades.',
-      at: [['The Alchemical Heart, Part I', '/product/the-alchemical-heart-part-i-mystical-psychology-and-the-path-of-the-universal-person-with-david-odorisio-ph-d-/37'],
-           ['Part II', '/product/the-alchemical-heart-part-ii-inner-alchemy-and-the-emergence-of-the-universal-person-facilitated-by-david-odorisio-ph-d-/38']] },
+      def: 'The old art of turning base matter into gold. Jung read its strange images as a map of psychological transformation, and studied its texts for decades.' },
     { term: 'Numinous', find: /\bnumin(?:ous|osum|osity)\b/i,
       def: 'Rudolf Otto\u2019s word, taken up by Jung, for the awe-filled, uncanny feeling of meeting something greater than oneself.' },
     { term: 'Daimon', find: /\b(?:daimon|daemon)(?:s|ic)?\b/i,
-      def: 'In Greek thought, a guiding spirit between the human and the divine. Jung used the word for the creative force that drives a person toward their own fate.',
-      at: [['Bargaining with the Daimon in the Age of AI', '/product/bargaining-with-the-daimon-in-the-age-of-ai/BDCEI4AVW3JM2URS5MFDWV7B']] },
+      def: 'In Greek thought, a guiding spirit between the human and the divine. Jung used the word for the creative force that drives a person toward their own fate.' },
     { term: 'Dreams', find: /\bdreams?\b/i,
-      def: 'For Jung, a spontaneous self-portrait of the psyche\u2019s actual situation, told in symbols. Dreams often show what the waking mind overlooks.',
-      at: [['Working with Dreams: An Introduction to the Unconscious', '/product/working-with-dreams-an-introduction-to-the-unconscious-webinar-/GP2JAPZKKYVMDRR274QBD537']] },
+      def: 'For Jung, a spontaneous self-portrait of the psyche\u2019s actual situation, told in symbols. Dreams often show what the waking mind overlooks.' },
     { term: 'Symbol', find: /\bsymbols?\b/i,
       def: 'For Jung, the best possible expression of something not yet fully known. A sign points to what we already know; a symbol points beyond it.' },
-    { term: 'Myth', find: /\b(?:myths?|mythology|mythologies)\b/i,
-      def: 'The shared stories in which the archetypes speak. Jung saw myth and dream as two voices of the same deep layer of the psyche.',
-      at: [['The Warrior\u2019s Return: Jungian Psychology and the Odyssey', '/product/the-warrior-s-return-jungian-psychology-the-odyssey-as-a-roadmap-to-guide-our-veterans-home/30'],
-           ['The Persephone Experience', '/s/stories/the-persephone-experience']] },
+    { term: 'Myth', find: /\b(?:myths?|mythic|mythical|mythological|mythology|mythologies)\b/i,
+      def: 'The shared stories in which the archetypes speak. Jung saw myth and dream as two voices of the same deep layer of the psyche.' },
     { term: 'Enantiodromia', find: /\benantiodromia\b/i,
       def: 'Heraclitus\u2019s word, borrowed by Jung, for the way anything pushed to an extreme tends to turn into its opposite.' },
     { term: 'Puer aeternus', find: /\bpuer(?: aeternus)?\b/i,
@@ -173,6 +205,62 @@ window.KCFOJ_WORDS = {
       def: 'The shape-shifting, rule-breaking figure of myth and folklore, from Hermes to Coyote. Jung saw in it the disruptive energy that loosens a rigid order.' }
   ]
 };
+
+
+/* Resource helpers shared by the Living Margin and archive layer. */
+(function () { if (window.KCFOJ_SKIP) return;
+  var W = window.KCFOJ_WORDS || {}, R = W.resources || [];
+  function clean(u) {
+    try { var a = document.createElement('a'); a.href = u || '/'; return (a.pathname || '/').replace(/\/+$/, '') || '/'; }
+    catch (e) { return String(u || '/').split(/[?#]/)[0].replace(/\/+$/, '') || '/'; }
+  }
+  function when(r) { var t = r && r.date ? Date.parse(r.date + 'T12:00:00') : NaN; return isNaN(t) ? 0 : t; }
+  function hasTheme(r, term) { return !!(r && (r.themes || []).some(function (x) { return String(x).toLowerCase() === String(term).toLowerCase(); })); }
+  function featured(r, term) { return !!(r && (r.feature || []).some(function (x) { return String(x).toLowerCase() === String(term).toLowerCase(); })); }
+  window.KCFOJ_cleanPath = clean;
+  window.KCFOJ_resourceForPath = function (path) {
+    path = clean(path || location.pathname);
+    for (var i = 0; i < R.length; i++) if (clean(R[i].url) === path) return R[i];
+    return null;
+  };
+  window.KCFOJ_isPastResource = function (r) {
+    if (!r || r.type !== 'program') return false;
+    if (r.status) return r.status === 'past';
+    return when(r) && when(r) < Date.now();
+  };
+  window.KCFOJ_isUpcomingResource = function (r) {
+    if (!r || r.type !== 'program' || r.status !== 'current' || !r.date) return false;
+    var t = Date.parse(r.date + 'T23:59:59.999');
+    return !isNaN(t) && t >= Date.now();
+  };
+  window.KCFOJ_atFor = function (term, limit) {
+    var out = R.filter(function (r) { return hasTheme(r, term); });
+    out.sort(function (a, b) {
+      var af = featured(a, term) ? 0 : 1, bf = featured(b, term) ? 0 : 1;
+      if (af !== bf) return af - bf;
+      var ad = when(a), bd = when(b);
+      if (ad && bd && ad !== bd) return bd - ad;
+      return R.indexOf(a) - R.indexOf(b);
+    });
+    return out.slice(0, limit || 3);
+  };
+  window.KCFOJ_relatedFor = function (r, limit) {
+    if (!r) return [];
+    var mine = r.themes || [], scored = [];
+    R.forEach(function (x, i) {
+      if (x === r || clean(x.url) === clean(r.url)) return;
+      var shared = (x.themes || []).filter(function (t) { return mine.some(function (m) { return String(m).toLowerCase() === String(t).toLowerCase(); }); }).length;
+      if (shared) scored.push({ r: x, shared: shared, order: i });
+    });
+    scored.sort(function (a, b) {
+      if (a.shared !== b.shared) return b.shared - a.shared;
+      var ad = when(a.r), bd = when(b.r);
+      if (ad !== bd) return bd - ad;
+      return a.order - b.order;
+    });
+    return scored.slice(0, limit || 6).map(function (x) { return x.r; });
+  };
+})();
 
 /* ----- Shared helpers (no need to edit) ----- */
 (function () { if (window.KCFOJ_SKIP) return;
@@ -246,7 +334,7 @@ window.KCFOJ_WORDS = {
   };
   // Pop-ups and dialogs (Square's newsletter pop-up among them) get the page's colors and nothing
   // else: no reveals, glosses, initials or held galleries. This script never hides, delays or moves them.
-  window.KCFOJ_DIALOGS = '[role="dialog"], [aria-modal="true"], dialog, [class~="popup" i], [class~="modal" i], [class^="popup-" i], [class^="modal-" i], [class*="popup__" i], [class*="modal__" i]';
+  window.KCFOJ_DIALOGS = '[role="dialog"], [aria-modal="true"], dialog, :not(html):not(body)[class~="popup" i], :not(html):not(body)[class~="modal" i], :not(html):not(body)[class^="popup-" i], :not(html):not(body)[class^="modal-" i], :not(html):not(body)[class*="popup__" i], :not(html):not(body)[class*="modal__" i]';
 
   // The mandala line drawing shared by the arrival veil, the back-to-top device and
   // the night page: two outer rings, twelve petals, an inner ring, eight seeds, a star, a heart.
@@ -611,8 +699,8 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
     });
   }
   // Elements this script created, and anything inside them
-  var MADE = /(^|\s)kc-(band|frieze|veil|atmos|aurora|vignette|margin|note|def|lb|compass|seal|colophon|shadow|lantern|night-art|folio-no|folio-btn|gloss|key|lex-term|tl-year)(\s|$)/;
-  var OURS = '.kc-band, .kc-veil, .kc-atmos, .kc-margin, .kc-def, .kc-lb, .kc-compass, .kc-seal, .kc-colophon, .kc-shadow, .kc-folio-btn, .kc-folio-no, .kc-gloss, #kc-diag';
+  var MADE = /(^|\s)kc-(band|frieze|veil|atmos|aurora|vignette|margin|note|def|lb|compass|seal|colophon|shadow|lantern|night-art|folio-no|folio-btn|gloss|key|lex-term|tl-year|archive-leaf|archive-rubric)(\s|$)/;
+  var OURS = '.kc-band, .kc-veil, .kc-atmos, .kc-margin, .kc-def, .kc-lb, .kc-compass, .kc-seal, .kc-colophon, .kc-shadow, .kc-folio-btn, .kc-folio-no, .kc-gloss, .kc-archive-leaf, .kc-archive-rubric, #kc-diag';
   function made(n) {
     if (!n || n.nodeType !== 1) return false;
     return MADE.test(n.getAttribute('class') || '') || /^kc-/.test(n.id || '');
@@ -819,12 +907,18 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
     }
     return pages.length === n && !sliderLike(pages);
   }
-  // A held gallery has 2.6 seconds to become a spread once it is near the screen. One further
-  // down the page waits out of sight until the reader comes within half a screen of it.
-  // Past that it is shown as Square made it, and stays that way.
+  // Begin waking lazy gallery sources about two screens before the reader reaches them, but
+  // do not start the 2.6-second "become a folio or stay a grid" clock until the gallery is
+  // within half a screen. That gives slow connections a head start without fetching every plate
+  // at page load. Once a grid has actually been exposed, it never turns into a folio in front of
+  // the reader later.
+  function keepGrid(box) {
+    box.setAttribute('data-kc-folio-grid', '1');
+    box.setAttribute('data-kc-folio-off', '1');
+  }
   function letGo(box) {
     if (box.getAttribute('data-kc-hold') !== '1') return;
-    if (!box.closest('[data-block-purpose^="gallery"]')) box.setAttribute('data-kc-folio-off', '1');
+    keepGrid(box);
     box.setAttribute('data-kc-hold', 'done');
     stats.leftAsGrid++;
   }
@@ -833,18 +927,32 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
     box._kcClock = now();
     setTimeout(function () { letGo(box); }, 2600);
   }
+  var preloadPx = Math.max(800, (window.innerHeight || D.documentElement.clientHeight || 800) * 2);
+  var preloadIO = 'IntersectionObserver' in window ? new IntersectionObserver(function (ents) {
+    for (var i = 0; i < ents.length; i++) {
+      if (!ents[i].isIntersecting) continue;
+      var box = ents[i].target;
+      preloadIO.unobserve(box);
+      box._kcPreload = true;
+      if (window.KCFOJ_schedule) window.KCFOJ_schedule();
+    }
+  }, { rootMargin: Math.round(preloadPx) + 'px 0px ' + Math.round(preloadPx) + 'px 0px' }) : null;
   var nearIO = 'IntersectionObserver' in window ? new IntersectionObserver(function (ents) {
     for (var i = 0; i < ents.length; i++) {
       if (!ents[i].isIntersecting) continue;
-      nearIO.unobserve(ents[i].target);
-      startClock(ents[i].target);
+      var box = ents[i].target;
+      nearIO.unobserve(box);
+      if (!box._kcPreload) box._kcPreload = true;
+      startClock(box);
+      if (window.KCFOJ_schedule) window.KCFOJ_schedule();
     }
   }, { rootMargin: '50% 0px 50% 0px' }) : null;
-  // Part 11 also calls this for any held gallery it finds, so a copy Square made of one is let go too
+  // Part 11 also calls this for any held gallery it finds, so a copy Square made of one is watched too.
   function watchHold(box) {
     if (box._kcHeld) return;
     box._kcHeld = true;
-    if (nearIO) nearIO.observe(box); else startClock(box);
+    if (preloadIO) preloadIO.observe(box); else box._kcPreload = true;
+    if (nearIO) nearIO.observe(box); else { box._kcPreload = true; startClock(box); }
   }
   window.KCFOJ_watchHold = watchHold;
   // Is the boot block's vellum still over the page?
@@ -873,8 +981,8 @@ nav a:not(${BTN}):not(${OUT}){font-family:var(--kc-ui)!important;text-transform:
             // A gallery the visitor may already be looking at is never hidden or changed: it stays
             // Square's grid (this happens only when this script arrives after the page is shown)
             var old = first || !roots.some(function (r) { return r === a || (r.contains && r.contains(a)); });
-            if (old && onScreen(a) && !coverUp() && !a.closest('[data-block-purpose^="gallery"]')) {
-              a.setAttribute('data-kc-folio-off', '1');
+            if (old && onScreen(a) && !coverUp()) {
+              keepGrid(a);
               a.setAttribute('data-kc-hold', 'done');
               stats.leftAsGrid++;
             } else {
@@ -1271,6 +1379,9 @@ try {
   var D = document, R = D.documentElement;
   function mq(q) { return !!(window.matchMedia && window.matchMedia(q).matches); }
   var still = mq('(prefers-reduced-motion: reduce)');
+  // Remember an explicit motion choice across full page loads. Reduced-motion remains
+  // authoritative through the existing kc-still treatment; this only persists the visitor's toggle.
+  try { if (localStorage.getItem('kcMotionPaused') === '1') R.setAttribute('data-kc-motion', 'paused'); } catch (e) {}
   // A mouse or trackpad, read when needed (a touch screen gets taps and scrolls instead of hovers)
   function fine() { return mq('(hover: hover) and (pointer: fine)'); }
   var roman = window.KCFOJ_roman || function (n) { return String(n); };
@@ -1324,15 +1435,20 @@ html.kc-lock{overflow:hidden}
 @keyframes kcBandIn{from{opacity:0}to{opacity:1}}
 .kc-frieze{position:relative;overflow:hidden;padding-block:clamp(12px,2vw,20px);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
 .kc-band-track{display:flex;width:max-content;animation:kcMarq 70s linear infinite}
+html[data-kc-motion="paused"] .kc-band-track,html[data-kc-motion="paused"] [data-kc-hero~="breathe"],html[data-kc-motion="paused"] .kc-aurora,html[data-kc-motion="paused"] .kc-aurora::before{animation-play-state:paused!important}
 .kc-fw{display:inline-flex;align-items:center;padding-inline:.45em;white-space:nowrap;font:italic 400 clamp(22px,3.4vw,40px)/1.15 var(--kc-serif);color:var(--kc-accent);cursor:pointer;text-decoration:underline dotted rgba(168,132,79,.55);text-decoration-thickness:1px;text-underline-offset:.2em;transition:color .3s ease}
 .kc-fw:hover,.kc-fw.kc-on{color:var(--kc-accent-deep);text-decoration-style:solid}
 .kc-band-track i{font-style:normal;color:var(--kc-gold);font-size:clamp(11px,1.7vw,20px);align-self:center;padding-inline:.45em}
 .kc-frieze:hover .kc-band-track,.kc-band.kc-held .kc-band-track{animation-play-state:paused}
+.kc-band-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto}
+.kc-motion-toggle{position:static;display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:5px 8px;border:1px solid rgba(168,132,79,.4);border-radius:3px;background:rgba(244,237,225,.72);color:var(--kc-accent);font:500 11px/1.2 var(--kc-mono);letter-spacing:.06em;white-space:nowrap;cursor:pointer;box-shadow:0 4px 12px -10px rgba(20,12,10,.5)}
+.kc-motion-toggle:hover{border-color:var(--kc-accent);background:rgba(244,237,225,.96)}
+.kc-motion-toggle:focus-visible{outline:2px solid var(--kc-accent);outline-offset:2px}
 @keyframes kcMarq{to{transform:translateX(-50%)}}
 .kc-frieze+.kc-band-row{border-top:1px solid rgba(139,42,36,.12)}
 .kc-band-row{box-sizing:border-box;max-width:1180px;margin:0 auto;padding:clamp(10px,1.4vw,16px) clamp(16px,4vw,48px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 32px}
 .kc-index{display:flex;flex-wrap:wrap;align-items:baseline;row-gap:0}
-.kc-index-lab{font:500 10px/1 var(--kc-mono);letter-spacing:.24em;text-transform:uppercase;color:var(--kc-verd);margin-right:16px}
+.kc-index-lab{font:500 11px/1 var(--kc-mono);letter-spacing:.24em;text-transform:uppercase;color:var(--kc-verd);margin-right:16px}
 .kc-term{all:unset;box-sizing:border-box;cursor:pointer;font:italic 400 clamp(17px,1.5vw,20px)/1.35 var(--kc-serif);color:var(--kc-accent);padding:6px 1px;text-decoration:underline;text-decoration-color:transparent;text-decoration-thickness:1px;text-underline-offset:.24em;transition:text-decoration-color .25s}
 .kc-term:hover,.kc-term[aria-expanded="true"]{text-decoration-color:currentColor}
 .kc-term:focus-visible{outline:2px solid var(--kc-accent);outline-offset:2px}
@@ -1354,7 +1470,9 @@ html.kc-lock{overflow:hidden}
   .kc-index-lab{position:sticky;left:0;z-index:1;align-self:stretch;display:flex;align-items:center;margin-right:6px;padding-right:10px;background-color:var(--kc-cream);background-image:var(--kc-grain);background-size:240px 240px}
   .kc-term{flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;min-height:44px;padding:0 2px;font-size:17px}
   .kc-index>i{flex:0 0 auto;padding:0 .45em}
+  .kc-band-actions{justify-content:space-between;gap:10px;padding-top:2px}
   .kc-begin{padding:2px 0 0;font-size:14px!important}
+  .kc-motion-toggle{min-height:32px;padding:5px 7px}
 }
 .kc-still .kc-band.kc-band-in,.kc-still .kc-band-track{animation:none}
 
@@ -1380,7 +1498,7 @@ html.kc-lock{overflow:hidden}
 .kc-lb.kc-open .kc-lb-book{transform:none}
 .kc-lb-leaf{flex:0 0 clamp(220px,24vw,330px);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;gap:18px;padding:clamp(24px,3vw,40px) clamp(20px,2.4vw,34px);background-color:var(--kc-cream);background-image:var(--kc-grain);background-size:240px 240px;border-radius:3px 0 0 3px;box-shadow:inset -22px 0 26px -20px rgba(31,26,23,.4);transform-origin:100% 50%;transform:rotateY(32deg);opacity:.15;transition:transform .9s var(--kc-e),opacity .6s ease}
 .kc-lb.kc-open .kc-lb-leaf{transform:none;opacity:1}
-.kc-lb-head{font:500 10px/1.5 var(--kc-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--kc-verd)}
+.kc-lb-head{font:500 11px/1.5 var(--kc-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--kc-verd)}
 .kc-lb-fol{display:block;font:italic 400 clamp(30px,3.2vw,44px)/1 var(--kc-serif);color:var(--kc-accent)}
 .kc-lb-fol::after{content:"";display:block;width:44px;height:1px;margin-top:16px;background:var(--kc-gold)}
 .kc-lb-cap{font:italic 400 16px/1.55 var(--kc-serif);color:var(--kc-ink-soft);text-wrap:pretty}
@@ -1395,16 +1513,17 @@ html.kc-lock{overflow:hidden}
 .kc-lb-prev,.kc-lb-next{top:50%;margin-top:-23px}
 .kc-lb-prev{left:12px}.kc-lb-next{right:12px}
 .kc-lb-count{position:absolute;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));text-align:center;color:rgba(244,237,225,.62);font:400 11px/1 var(--kc-mono);letter-spacing:.24em}
+.kc-lb-sr{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 @media (max-width:899px){.kc-lb-leaf{display:none}.kc-lb-page{border-radius:3px;box-shadow:0 40px 90px -30px rgba(0,0,0,.8)}.kc-lb-mcap{display:block}.kc-lb img{max-height:calc(100vh - 230px)}}
 @media (max-width:600px){.kc-lb{padding:60px 12px 86px}.kc-lb .kc-lb-prev,.kc-lb .kc-lb-next{top:auto;bottom:max(14px,env(safe-area-inset-bottom));margin-top:0}.kc-lb .kc-lb-prev{left:16px}.kc-lb .kc-lb-next{right:16px}.kc-lb-count{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 17px)}}
 .kc-still .kc-lb-book,.kc-still .kc-lb-leaf{transition:none;transform:none}
 
 /* 7. The night page: red-black leather, a candle, the quote coming out of the dark,
    and a mandala in the leather that only the candle shows. On touch screens the whole
-   quote stays faintly readable (about a quarter strength) and the candle brings parts
+   quote stays comfortably readable at rest and the candle brings parts
    of it up to full. */
-.kc-shadow{position:relative!important;overflow:hidden!important;background-color:var(--kc-night)!important;background-image:var(--kc-leather)!important;background-size:260px 260px!important;min-height:clamp(420px,72vh,680px)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:clamp(72px,11vw,140px) 24px!important;margin:0!important;--x:50%;--y:50%;--kc-r:220px;--kc-qbase:.07}
-@media (hover:none),(pointer:coarse){.kc-shadow{--kc-qbase:.28}}
+.kc-shadow{position:relative!important;overflow:hidden!important;background-color:var(--kc-night)!important;background-image:var(--kc-leather)!important;background-size:260px 260px!important;min-height:clamp(420px,72vh,680px)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:clamp(72px,11vw,140px) 24px!important;margin:0!important;--x:50%;--y:50%;--kc-r:220px;--kc-qbase:.48}
+@media (hover:none),(pointer:coarse){.kc-shadow{--kc-qbase:.55}}
 .kc-shadow::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle min(calc(var(--kc-r) * 1.7), 380px) at var(--x) var(--y),rgba(255,210,150,.16),rgba(255,210,150,.05) 45%,transparent 72%)}
 .kc-shadow::after{content:"";position:absolute;inset:clamp(10px,1.6vw,20px);border:1px solid rgba(168,132,79,.22);outline:1px solid rgba(168,132,79,.12);outline-offset:-7px;pointer-events:none}
 .kc-night-art{position:absolute;left:50%;top:50%;width:min(94vw,760px);aspect-ratio:1;transform:translate(-50%,-50%);pointer-events:none;opacity:.42;-webkit-mask-image:radial-gradient(circle calc(var(--kc-r) * 1.3) at var(--ax,50%) var(--ay,50%),#000 0%,rgba(0,0,0,.4) 40%,transparent 70%);mask-image:radial-gradient(circle calc(var(--kc-r) * 1.3) at var(--ax,50%) var(--ay,50%),#000 0%,rgba(0,0,0,.4) 40%,transparent 70%)}
@@ -1412,10 +1531,10 @@ html.kc-lock{overflow:hidden}
 .kc-night-art svg *{fill:none;stroke:var(--kc-gold);stroke-width:.55}
 .kc-shadow-q{position:relative;margin:0;max-width:15ch;text-align:center;font:italic 400 clamp(34px,6.2vw,76px)/1.12 var(--kc-serif);letter-spacing:-.01em;text-wrap:balance;color:transparent;background:radial-gradient(circle var(--kc-r) at var(--qx,50%) var(--qy,50%),#F6EEDF 0%,rgba(246,238,223,.6) 38%,rgba(246,238,223,var(--kc-qbase,.07)) 72%);-webkit-background-clip:text;background-clip:text}
 .kc-shadow-by{display:block;margin-top:1.3em;font:400 11px/1.4 var(--kc-mono);font-style:normal;letter-spacing:.3em;text-transform:uppercase}
-.kc-shadow-hint{position:absolute;left:0;right:0;bottom:28px;padding:0 16px;text-align:center;font:400 10px/1.4 var(--kc-mono);letter-spacing:.28em;text-transform:uppercase;color:rgba(244,237,225,.5);transition:opacity .8s}
+.kc-shadow-hint{position:absolute;left:0;right:0;bottom:28px;padding:0 16px;text-align:center;font:400 11px/1.4 var(--kc-mono);letter-spacing:.28em;text-transform:uppercase;color:rgba(244,237,225,.5);transition:opacity .8s}
 .kc-shadow.kc-used .kc-shadow-hint{opacity:0}
 .kc-lantern{position:absolute;left:var(--x);top:var(--y);width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#FFE2B3;box-shadow:0 0 18px 6px rgba(255,205,140,.45);pointer-events:none;opacity:0;transition:opacity .4s}
-@media (hover:hover) and (pointer:fine){.kc-shadow:not(.kc-lit){cursor:none}.kc-shadow:not(.kc-lit):hover .kc-lantern{opacity:1}}
+@media (hover:hover) and (pointer:fine){.kc-shadow:not(.kc-lit){cursor:default}.kc-shadow:not(.kc-lit):hover .kc-lantern{opacity:1}}
 .kc-lit .kc-shadow-q{color:#F6EEDF;background:none}
 .kc-lit .kc-night-art{opacity:.08;-webkit-mask-image:none;mask-image:none}
 .kc-lit .kc-shadow-hint{display:none}
@@ -1652,10 +1771,38 @@ html.kc-lock{overflow:hidden}
       }).join('');
       var b = W.begin || {};
       var begin = b.url ? '<a class="kc-begin" href="' + esc(b.url) + '"><span>' + esc(b.lead || '') + '</span><b' + (on('manicules') ? ' class="kc-hand"' : '') + '>' + esc(b.link || 'Begin here') + '</b></a>' : '';
-      out += '<div class="kc-band-row"><div class="kc-index" role="group" aria-label="A few of Jung\u2019s words. Choose one for a short definition."><span class="kc-index-lab" aria-hidden="true">Index</span>' + items + '</div>' + begin + '</div>';
+      var motion = on('wordBand') ? '<button type="button" class="kc-motion-toggle" aria-pressed="false">Pause motion</button>' : '';
+      out += '<div class="kc-band-row"><div class="kc-index" role="group" aria-label="A few of Jung\u2019s words. Choose one for a short definition."><span class="kc-index-lab" aria-hidden="true">Index</span>' + items + '</div><div class="kc-band-actions">' + begin + motion + '</div></div>';
+    } else if (on('wordBand')) {
+      out += '<div class="kc-band-row"><div class="kc-band-actions"><button type="button" class="kc-motion-toggle" aria-pressed="false">Pause motion</button></div></div>';
     }
     return out;
   }
+  function motionPaused() { return R.getAttribute('data-kc-motion') === 'paused'; }
+  function syncMotionToggle() {
+    if (!bandEl) return;
+    var b = bandEl.querySelector('.kc-motion-toggle');
+    if (!b) return;
+    var p = motionPaused();
+    b.setAttribute('aria-pressed', p ? 'true' : 'false');
+    b.textContent = p ? 'Resume motion' : 'Pause motion';
+  }
+  function bindMotionToggle() {
+    if (!bandEl) return;
+    var b = bandEl.querySelector('.kc-motion-toggle');
+    if (!b) return;
+    if (!b._kcBound) {
+      b._kcBound = true;
+      b.addEventListener('click', function () {
+        if (motionPaused()) R.removeAttribute('data-kc-motion');
+        else R.setAttribute('data-kc-motion', 'paused');
+        try { localStorage.setItem('kcMotionPaused', motionPaused() ? '1' : '0'); } catch (e) {}
+        syncMotionToggle();
+      });
+    }
+    syncMotionToggle();
+  }
+
   function path(el) {
     var out = [];
     for (var n = 0; el && el !== D.body && el !== R && n < 4; n++, el = el.parentElement) {
@@ -1686,7 +1833,7 @@ html.kc-lock{overflow:hidden}
     var box = D.getElementById('kc-diag') || D.body.appendChild(mk('pre'));
     box.id = 'kc-diag';
     box.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;max-height:55vh;overflow:auto;margin:0;padding:10px;background:#fff;color:#111;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;border:2px solid #8B2A24;border-radius:6px';
-    box.textContent = 'KCFOJ debug (v3.1.2) page ' + location.pathname + '\n' + diag.join('\n');
+    box.textContent = 'KCFOJ debug (v' + (window.KCFOJ_VERSION || '?') + ') page ' + location.pathname + '\n' + diag.join('\n');
   }
   function band() {
     if (!heroEl || bandFails >= 12 || (bandEl && D.contains(bandEl))) return;
@@ -1694,6 +1841,7 @@ html.kc-lock{overflow:hidden}
     if (!html) return;
     strays('.kc-band', bandEl);
     if (!bandEl) { bandEl = mk('div', 'kc-band', html); bandShown = false; }
+    bindMotionToggle();
     // Measure the banner without its breathing zoom, which makes it look taller than it is
     self.add(heroEl);
     var ot = heroEl.style.getPropertyValue('transform'), op = heroEl.style.getPropertyPriority('transform');
@@ -1785,10 +1933,21 @@ html.kc-lock{overflow:hidden}
       });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.01 });
   }
+  function readingPage() {
+    var pth = (location.pathname || '/').replace(/\/+$/, '') || '/';
+    if (/^\/s\/stories\//i.test(pth)) return true;
+    var r = window.KCFOJ_resourceForPath ? window.KCFOJ_resourceForPath(pth) : null;
+    return !!(r && window.KCFOJ_isPastResource && window.KCFOJ_isPastResource(r));
+  }
   function reveal() {
     if (!io || window.KCFOJ_commerce()) return;
     var fold = window.innerHeight;
-    var sel = 'h1, h2, h3, iframe, form, [data-kc~="card"], [data-kc~="tile"]' + (on('revealParagraphs') ? ', p' : '');
+    var reading = readingPage(), paragraphs = on('revealParagraphs') && !reading;
+    if (reading) [].forEach.call(D.querySelectorAll('p[data-kc-rv]'), function (p) {
+      try { io.unobserve(p); } catch (e) {}
+      p.removeAttribute('data-kc-rv'); p.style.transitionDelay = '';
+    });
+    var sel = 'h1, h2, h3, iframe, form, [data-kc~="card"], [data-kc~="tile"]' + (paragraphs ? ', p' : '');
     [].forEach.call(D.querySelectorAll(sel), function (el) {
       var was = el.getAttribute('data-kc-rv');
       if (was !== null) {
@@ -1865,10 +2024,11 @@ html.kc-lock{overflow:hidden}
     lb.querySelector('.kc-lb-fol').textContent = fol;
     lb.querySelector('.kc-lb-cap').textContent = alt;
     lb.querySelector('.kc-lb-head').textContent = headOf(t) || KC.name;
-    lb.querySelector('.kc-lb-mcap').innerHTML = '<b></b><span></span>';
+    lb.querySelector('.kc-lb-mcap').innerHTML = '<b aria-hidden="true"></b><span></span>';
     lb.querySelector('.kc-lb-mcap b').textContent = fol;
     lb.querySelector('.kc-lb-mcap span').textContent = alt;
     lb.querySelector('.kc-lb-count').textContent = fol + '  /  ' + roman(lbList.length, true);
+    lb.querySelector('.kc-lb-sr').textContent = 'Plate ' + (lbI + 1) + ' of ' + lbList.length + (alt ? ': ' + alt : '');
   }
   function lbStep(d) {
     lbI = (lbI + d + lbList.length) % lbList.length;
@@ -1888,10 +2048,10 @@ html.kc-lock{overflow:hidden}
     if (!lb) {
       lb = mk('div', 'kc-lb',
         '<div class="kc-lb-book">' +
-          '<div class="kc-lb-leaf"><span class="kc-lb-head"></span><span class="kc-lb-fol"></span><span class="kc-lb-cap"></span></div>' +
+          '<div class="kc-lb-leaf"><span class="kc-lb-head"></span><span class="kc-lb-fol" aria-hidden="true"></span><span class="kc-lb-cap"></span></div>' +
           '<figure class="kc-lb-page" style="margin:0"><img alt=""><figcaption class="kc-lb-mcap"></figcaption></figure>' +
         '</div>' +
-        '<button type="button" class="kc-lb-x" aria-label="Close">\u00D7</button><button type="button" class="kc-lb-prev" aria-label="Previous plate">\u2039</button><button type="button" class="kc-lb-next" aria-label="Next plate">\u203A</button><div class="kc-lb-count" aria-live="polite"></div>');
+        '<button type="button" class="kc-lb-x" aria-label="Close">\u00D7</button><button type="button" class="kc-lb-prev" aria-label="Previous plate">\u2039</button><button type="button" class="kc-lb-next" aria-label="Next plate">\u203A</button><div class="kc-lb-count" aria-hidden="true"></div><div class="kc-lb-sr" aria-live="polite" aria-atomic="true"></div>');
       lb.setAttribute('role', 'dialog');
       lb.setAttribute('aria-modal', 'true');
       lb.setAttribute('aria-label', 'Plate viewer');
@@ -1925,10 +2085,12 @@ html.kc-lock{overflow:hidden}
   });
   function gallery() {
     if (!on('plateViewer')) return;
+    var ar = window.KCFOJ_resourceForPath && window.KCFOJ_resourceForPath();
+    if (ar && ar.type === 'program' && (window.KCFOJ_isPastResource ? window.KCFOJ_isPastResource(ar) : ar.status === 'past') && ar.images === 'pending') return;
     [].forEach.call(D.querySelectorAll('[data-kc~="tile"]'), function (t) {
       if (t.getAttribute('data-kc-g') || t.closest('.kc-lb') || overlay(t)) return;
       t.setAttribute('data-kc-g', '1');
-      if (!t.hasAttribute('tabindex') && !t.closest('a, button')) { t.setAttribute('tabindex', '0'); t.setAttribute('role', 'button'); t.setAttribute('aria-label', 'Open plate'); }
+      if (!t.hasAttribute('tabindex') && !t.closest('a, button')) { var ti = t.tagName === 'IMG' ? t : t.querySelector('img'); var ta = ti ? (ti.getAttribute('alt') || '').trim() : ''; t.setAttribute('tabindex', '0'); t.setAttribute('role', 'button'); t.setAttribute('aria-label', ta ? 'Open plate: ' + ta : 'Open plate'); }
       function open(e) {
         var a = t.closest('a[href]');
         if (a && !/^(#|javascript)/i.test(a.getAttribute('href'))) return;
@@ -2065,12 +2227,14 @@ html.kc-lock{overflow:hidden}
   listen('scroll', unstick);
   listen('key', unstick);
 
-  showVeil(false);
   function isHome() {
     if (window.KCFOJ_FORCE_HOME) return true;
     var pth = location.pathname.replace(/\/+$/, '');
     return pth === '' || /^\/(index\.(php|html?)|home)$/i.test(pth);
   }
+  // The ceremonial arrival belongs at the threshold. Deep links get only the brief boot cover,
+  // then their content immediately; replayIntro() can still be invoked manually anywhere.
+  if (isHome()) showVeil(false);
   // Square switches pages without reloading, so clear anything tied to the previous page
   var lastPath = null;
   function routeCheck() {
@@ -2100,7 +2264,7 @@ html.kc-lock{overflow:hidden}
     lanternDirty();
   };
   window.KCFOJ = {
-    version: '3.2.2',
+    version: window.KCFOJ_VERSION || '3.4.4',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
@@ -2124,7 +2288,7 @@ html.kc-lock{overflow:hidden}
   var STAR = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0L7.6 4.4 12 6 7.6 7.6 6 12 4.4 7.6 0 6 4.4 4.4z' fill='%238B2A24'/%3E%3C/svg%3E\")";
   var css = `
 [data-kc-initial="1"]::first-letter{float:left;font-family:var(--kc-versal);font-weight:400;font-style:normal;font-size:3.6em;line-height:.82;color:var(--kc-accent);padding:.1em .12em .03em;margin:.06em .16em 0 0;border:1px solid rgba(168,132,79,.75);background:rgba(139,42,36,.05)}
-[data-kc-r~="num"]::before{content:attr(data-kc-no);display:block;width:max-content;margin:0 auto .8em;padding:0 44px;font:500 12px/1 var(--kc-serif);font-style:normal;letter-spacing:.32em;text-indent:.32em;text-transform:none;color:var(--kc-accent);background:linear-gradient(var(--kc-accent),var(--kc-accent)) left center/30px 1px no-repeat,linear-gradient(var(--kc-accent),var(--kc-accent)) right center/30px 1px no-repeat}
+[data-kc-r~="num"]::before{content:attr(data-kc-no);content:attr(data-kc-no) / "";display:block;width:max-content;margin:0 auto .8em;padding:0 44px;font:500 12px/1 var(--kc-serif);font-style:normal;letter-spacing:.32em;text-indent:.32em;text-transform:none;color:var(--kc-accent);background:linear-gradient(var(--kc-accent),var(--kc-accent)) left center/30px 1px no-repeat,linear-gradient(var(--kc-accent),var(--kc-accent)) right center/30px 1px no-repeat}
 [data-kc-r~="num"][data-kc-r~="left"]::before{margin-left:0;padding-left:0;text-indent:0;background:linear-gradient(var(--kc-accent),var(--kc-accent)) right center/30px 1px no-repeat}
 [data-kc-r~="num"][data-kc-no="\\00B6"]::before{font-size:15px;letter-spacing:0;text-indent:0}
 [data-kc-r~="orn"]::after{content:"";display:block;width:clamp(110px,16vw,150px);height:12px;margin:.55em auto 0;background:linear-gradient(var(--kc-gold),var(--kc-gold)) left center/calc(50% - 15px) 1px no-repeat,linear-gradient(var(--kc-gold),var(--kc-gold)) right center/calc(50% - 15px) 1px no-repeat,${STAR} center/10px 10px no-repeat}
@@ -2132,7 +2296,7 @@ html.kc-lock{overflow:hidden}
 `;
   window.KCFOJ_style(css, 'initials');
 
-  function skip(el) { return !!el.closest('header, footer, nav, form, blockquote, li, a, button, .kc-lb, .kc-band, .kc-shadow, [data-kc~="footer"], [data-kc~="header"], [data-kc~="card"], .kc-margin, .kc-def, .kc-colophon, [data-kc-about="lex"], .kc-veil, ' + window.KCFOJ_DIALOGS); }
+  function skip(el) { return !!el.closest('header, footer, nav, form, blockquote, li, a, button, .kc-lb, .kc-band, .kc-shadow, [data-kc~="footer"], [data-kc~="header"], [data-kc~="card"], .kc-margin, .kc-def, .kc-colophon, .kc-archive-leaf, .kc-archive-rubric, [data-kc-about="lex"], .kc-veil, ' + window.KCFOJ_DIALOGS); }
   function left(el) { return /^(left|start|justify)$/.test(getComputedStyle(el).textAlign); }
   function fontOnce() {
     if (D.getElementById('kc-initial-font')) return;
@@ -2324,7 +2488,7 @@ html.kc-lock{overflow:hidden}
  var HIDE_PILL = true; // false keeps Square's own date pill under the photo as well
  var css = `
 .kc-seal{position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;min-width:62px;padding:7px 9px 8px;background:var(--kc-card);border:1px solid var(--kc-gold);box-shadow:inset 0 0 0 3px var(--kc-card),inset 0 0 0 4px rgba(168,132,79,.5),0 12px 26px -12px rgba(20,12,10,.6);color:var(--kc-ink);text-align:center;pointer-events:none;transform-origin:50% 60%;transition:transform .5s var(--kc-e)}
-.kc-seal-wd{font:500 9px/1 var(--kc-mono);letter-spacing:.2em;text-transform:uppercase;color:var(--kc-verd);margin:1px 0 4px .2em}
+.kc-seal-wd{font:500 11px/1 var(--kc-mono);letter-spacing:.2em;text-transform:uppercase;color:var(--kc-verd);margin:1px 0 4px .2em}
 .kc-seal-day{font:400 34px/.95 var(--kc-serif);font-variant-numeric:lining-nums;color:var(--kc-accent)}
 .kc-seal-mo{font:500 11px/1 var(--kc-serif);letter-spacing:.2em;text-transform:uppercase;margin-top:5px;padding:5px 0 0 .2em;border-top:1px solid rgba(168,132,79,.6)}
 @media (max-width:600px){.kc-seal{min-width:56px;padding:6px 8px 7px}.kc-seal-day{font-size:30px}}
@@ -2429,12 +2593,12 @@ html.kc-lock{overflow:hidden}
      gets an anchor (#kc-shadow), so a Lexicon page built this way can be
      linked from the margin notes: set lexiconUrl in Part 0. */
 (function () { if (window.KCFOJ_SKIP) return;
- var D = document, mark = window.KCFOJ_mark;
+ var D = document, W = window.KCFOJ_WORDS || {}, mark = window.KCFOJ_mark;
  var EPI = '[data-kc-about="epi"]', BY = '[data-kc-about="by"]', TL = '[data-kc-about="tl"]', LEX = '[data-kc-about="lex"]';
  var css = `
 ${EPI}{max-width:30em!important;margin:0 auto 1.2em!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;text-align:center!important;font:italic 400 clamp(20px,2.4vw,26px)/1.45 var(--kc-serif)!important;color:var(--kc-ink)!important;text-wrap:balance}
 ${EPI} *{font:inherit!important;text-align:inherit!important;color:inherit!important;margin:0!important}
-${EPI}::before{content:"\\2766";display:block;margin:0 auto .5em;font:normal 16px/1 var(--kc-serif);color:var(--kc-accent)}
+${EPI}::before{content:"\\2766";content:"\\2766" / "";display:block;margin:0 auto .5em;font:normal 16px/1 var(--kc-serif);color:var(--kc-accent)}
 ${BY}{text-align:center!important;margin:0 auto 2.4em!important;font:400 11px/1.4 var(--kc-mono)!important;letter-spacing:.28em!important;text-transform:uppercase;color:var(--kc-accent)!important}
 [data-kc~="tllist"]{list-style:none!important;padding-left:0!important;margin-left:0!important}
 ${TL}{position:relative;list-style:none!important;min-height:2.6em;margin:0!important;padding:.55em 0 .55em 104px!important;text-align:left!important}
@@ -2450,7 +2614,7 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
  var YEAR = /^((?:1[89]|20)\d0s|(?:1[89]|20)\d\d)\s*[\u00B7\u2022:|\-\u2013\u2014]\s*(?=\S)/;
  var TERM = /^([A-Z][A-Za-z'\-]*(?:\s+[A-Za-z'\-]+){0,3})\s*(?::|\s[\-\u2013\u2014])\s+(?=\S)/;
  var QUOTED = /^["\u201C\u2018'][\s\S]{8,}["\u201D\u2019']$/;
- function skip(el) { return !!el.closest('header, footer, nav, form, [data-kc~="card"], .kc-shadow, .kc-band, .kc-lb, .kc-seal, .kc-margin, .kc-def, .kc-colophon, .kc-veil, ' + window.KCFOJ_DIALOGS); }
+ function skip(el) { return !!el.closest('header, footer, nav, form, [data-kc~="card"], .kc-shadow, .kc-band, .kc-lb, .kc-seal, .kc-margin, .kc-def, .kc-colophon, .kc-archive-leaf, .kc-archive-rubric, .kc-veil, ' + window.KCFOJ_DIALOGS); }
  function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
  // Removes the first n characters of an element's text, across any bold or italic wrappers
  function peel(el, n) {
@@ -2473,6 +2637,9 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
  }
  function about() {
    if (window.KCFOJ_commerce()) return;
+   var p = location.pathname.replace(/\/+$/, '') || '/';
+   var lex = W.lexiconUrl ? String(W.lexiconUrl).replace(/\/+$/, '') : '';
+   if (p !== '/about' && (!lex || p !== lex)) return;
    var els = [].filter.call(D.querySelectorAll('h1, h2, h3, h4, p, li, blockquote'), function (el) { return !skip(el) && el.textContent.trim(); });
    var mode = null;
    els.forEach(function (el, i) {
@@ -2594,7 +2761,7 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
 .kc-note-term{font-weight:600;color:var(--kc-accent);margin-right:.2em}
 .kc-note-def{font-style:italic}
 .kc-note-at{display:block;margin-top:.4em;font:400 12.5px/1.4 var(--kc-serif);font-style:normal;color:var(--kc-verd)}
-.kc-note-lab{margin-right:.6em;font:500 9px/1.2 var(--kc-mono);letter-spacing:.18em;text-transform:uppercase}
+.kc-note-lab{margin-right:.6em;font:500 11px/1.2 var(--kc-mono);letter-spacing:.18em;text-transform:uppercase}
 .kc-def .kc-note-lab{display:block;margin-bottom:.3em}
 .kc-note-sep{color:rgba(79,107,94,.6)}
 .kc-note a,.kc-def a{color:var(--kc-verd)!important;text-decoration:underline!important;text-decoration-color:rgba(79,107,94,.45)!important;text-decoration-thickness:1px!important;text-underline-offset:.18em}
@@ -2618,16 +2785,19 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
   var esc = window.KCFOJ_esc || function (s) { return String(s); };
   function slug(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
   function here() { return location.pathname.replace(/\/+$/, ''); }
-  var OFF = 'header, footer, nav, form, a, button, [role="button"], h1, h2, h3, h4, h5, h6, blockquote, code, pre, textarea, [data-kc~="card"], .kc-band, .kc-shadow, .kc-lb, .kc-margin, .kc-def, .kc-colophon, [data-kc-about], .kc-seal, .kc-veil, [data-kc-zone], ' + window.KCFOJ_DIALOGS;
+  var OFF = 'header, footer, nav, form, a, button, [role="button"], h1, h2, h3, h4, h5, h6, blockquote, code, pre, textarea, [data-kc~="card"], .kc-band, .kc-shadow, .kc-lb, .kc-margin, .kc-def, .kc-colophon, .kc-archive-leaf, .kc-archive-rubric, [data-kc-about], .kc-seal, .kc-veil, [data-kc-zone], ' + window.KCFOJ_DIALOGS;
   var TAPS = '.kc-gloss, .kc-term, .kc-fw';
 
   var glosses = [], layer = null, card = null, cardFrom = null, y0 = 0, lastPath = null, uid = 0, kbd = false;
 
   // Links to places on this site where the idea came up, and to the Lexicon page if there is one
   function refs(e) {
-    var out = [];
-    (e.at || []).forEach(function (a) {
-      if (a && a[1] && a[1].replace(/\/+$/, '') !== here()) out.push('<a href="' + esc(a[1]) + '">' + esc(a[0]) + '</a>');
+    var out = [], atFor = window.KCFOJ_atFor || function () { return []; };
+    atFor(e.term, 3).forEach(function (r) {
+      if (!r || !r.url || r.url.replace(/\/+$/, '') === here()) return;
+      var label = r.short || r.title || e.term;
+      if (window.KCFOJ_isUpcomingResource && window.KCFOJ_isUpcomingResource(r)) label += ' · Coming up';
+      out.push('<a href="' + esc(r.url) + '">' + esc(label) + '</a>');
     });
     var more = W.lexiconUrl ? '<a href="' + esc(W.lexiconUrl) + '#kc-' + slug(e.term) + '">More in the Lexicon</a>' : '';
     if (!out.length && !more) return '';
@@ -2970,7 +3140,8 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
 (function () { if (window.KCFOJ_SKIP) return;
   var D = document, on = window.KCFOJ_on || function () { return true; };
   window.KCFOJ_style(
-    '.kc-seal-flag{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);padding:3px 8px 3px calc(8px + .2em);white-space:nowrap;background:var(--kc-accent);border:1px solid var(--kc-gold);color:var(--kc-card);font:500 8.5px/1.25 var(--kc-mono);letter-spacing:.2em;text-transform:uppercase;box-shadow:0 4px 10px -4px rgba(20,12,10,.5)}\n' +
+    '.kc-seal-flag{position:absolute;left:50%;bottom:-15px;transform:translateX(-50%);padding:3px 8px 3px calc(8px + .2em);white-space:nowrap;background:var(--kc-accent);border:1px solid var(--kc-gold);color:var(--kc-card);font:500 11px/1.25 var(--kc-mono);letter-spacing:.2em;text-transform:uppercase;box-shadow:0 4px 10px -4px rgba(20,12,10,.5)}\n' +
+    '.kc-seal-flag.kc-long{padding-left:7px;padding-right:7px;letter-spacing:.11em}\n' +
     '.kc-seal-flag.kc-now{animation:kcFlag 2.8s ease-in-out infinite}\n' +
     '@keyframes kcFlag{0%,100%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 0 rgba(168,132,79,0)}50%{box-shadow:0 4px 10px -4px rgba(20,12,10,.5),0 0 0 4px rgba(168,132,79,.3)}}\n' +
     '.kc-still .kc-seal-flag.kc-now{animation:none}', 'ribbon');
@@ -3051,7 +3222,7 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
       else if (left === 0) label = e.hour >= 16 ? 'Tonight' : 'Today';
       if (!label) return;
       var f = D.createElement('span');
-      f.className = 'kc-seal-flag' + (left === 0 ? ' kc-now' : '');
+      f.className = 'kc-seal-flag' + (left === 0 ? ' kc-now' : '') + (label === 'Tomorrow' ? ' kc-long' : '');
       f.textContent = label;
       s.appendChild(f);
     });
@@ -3080,9 +3251,9 @@ ${LEX}:target{background:rgba(139,42,36,.05)}
    that could become a spread out of sight (its space kept) the moment Square
    adds it. Here the spread is built and checked while it is hidden, and the
    gallery is shown once, already in its final state: the spread if every
-   check passes, otherwise Square's own grid, untouched. A gallery that is not
-   ready within 2.6 seconds of coming near the screen is shown as Square's grid
-   and stays that way. If Square later redraws the plates inside a spread, the
+   check passes, otherwise Square's own grid, untouched. Lazy plate sources begin waking
+   about two screens before the gallery arrives. If it still cannot become a safe spread within
+   2.6 seconds of coming near the screen, Square's grid is shown and stays that way. If Square later redraws the plates inside a spread, the
    spread is rebuilt before the next frame, or Square's grid comes back. */
 (function () { if (window.KCFOJ_SKIP) return;
   var D = document, on = window.KCFOJ_on || function () { return true; };
@@ -3174,14 +3345,18 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
     var src = im.currentSrc || im.getAttribute('src') || '';
     return !!(im.complete && im.naturalWidth && src && !/^data:image\/svg\+xml/i.test(src));
   }
-  function wakePlateImages(imgs) {
+  function nearEnough(box) {
+    if (!box) return false;
+    if (box._kcPreload || box._kcClock) return true; // Part 2 has brought this gallery into the preload/near zone.
+    var r = box.getBoundingClientRect(), vh = window.innerHeight || D.documentElement.clientHeight || 0;
+    return r.height > 0 && r.bottom > -vh * 2 && r.top < vh * 3;
+  }
+  function wakePlateImages(imgs, box) {
+    if (!nearEnough(box)) return;
     imgs.forEach(function (im) {
-      try {
-        im.loading = 'eager';
-        im.setAttribute('loading', 'eager');
-        im.setAttribute('fetchpriority', 'high');
-      } catch (e) {}
-      // If Square exposes a conventional lazy-source attribute, promote it now.
+      // Do not assign eager loading or high fetch priority here. The browser/Square keeps control
+      // of priority; this helper only promotes a real lazy source once the gallery is near.
+      // If Square exposes a conventional lazy-source attribute, promote it only when the gallery is near.
       var a = ['data-src', 'data-lazy-src', 'data-original', 'data-image-src'];
       for (var i = 0; i < a.length; i++) {
         var u = im.getAttribute(a[i]);
@@ -3197,7 +3372,7 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
   // 'no' when this gallery should stay as Square's grid
   function build(box) {
     var imgs = [].slice.call(box.getElementsByTagName('img'));
-    wakePlateImages(imgs);
+    wakePlateImages(imgs, box);
     if (imgs.length < 4) return 'no';
     // Square initially paints some gallery images as SVG placeholders. If the folio is
     // built at that moment, those off-axis pages can stay blank forever. Wait until
@@ -3296,19 +3471,24 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
     return r;
   }
   function folio() {
+    var ar = window.KCFOJ_resourceForPath && window.KCFOJ_resourceForPath();
+    if (ar && ar.type === 'program' && (window.KCFOJ_isPastResource ? window.KCFOJ_isPastResource(ar) : ar.status === 'past') && ar.images === 'pending') {
+      [].forEach.call(D.querySelectorAll('[data-kc-hold="1"]'), function (box) { box.setAttribute('data-kc-hold', 'done'); });
+      return;
+    }
     // Square exposes its gallery with a stable block purpose and .image-gallery > .grid.
     // Prefer that semantic hook over the generic gallery heuristic so the folio survives
     // normal Square layout/content changes. build() still validates the structure before keeping it.
     if (on('folioViewer') && !window.KCFOJ_commerce()) {
       [].forEach.call(D.querySelectorAll('[data-block-purpose^="gallery"] .image-gallery .grid'), function (box) {
-        if (has(box, 'box', F)) return;
+        if (has(box, 'box', F) || box.getAttribute('data-kc-folio-grid') === '1') return;
         var imgs = [].slice.call(box.getElementsByTagName('img'));
         var cells = [].slice.call(box.children).filter(function (c) { return c.querySelectorAll && c.querySelectorAll('img').length === 1; });
-        wakePlateImages(imgs);
+        wakePlateImages(imgs, box);
         if (imgs.length < 4 || cells.length !== imgs.length || imgs.some(function (im) { return !realPlateImage(im); })) return;
 
-        // This is Square's explicit gallery block, so a stale/transient "off" classification
-        // must never permanently block the folio treatment.
+        // A transient off mark may be retried only if the visitor has never actually been
+        // shown this gallery as a grid. Once data-kc-folio-grid is set, the guard above keeps it still.
         box.removeAttribute('data-kc-folio-off');
 
         // Seed the plate marks directly from the semantic gallery before build() validates it.
@@ -3324,7 +3504,8 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
       var r = attempt(box);
       if (r === 'wait') return;           // still hidden; Part 2 shows the grid if this takes too long
       if (r === 'no') {
-        if (!box.closest('[data-block-purpose^="gallery"]')) box.setAttribute('data-kc-folio-off', '1');
+        box.setAttribute('data-kc-folio-grid', '1');
+        box.setAttribute('data-kc-folio-off', '1');
         leftAsGrid();
       }
       box.setAttribute('data-kc-hold', 'done');   // shown now, in its final state
@@ -3337,7 +3518,7 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
       box.removeAttribute('data-kc-folio-off');
       if (window.KCFOJ_tiles) window.KCFOJ_tiles(box);
       if (attempt(box) !== 'ok') {
-        undo(box); leftAsGrid();
+        undo(box); box.setAttribute('data-kc-folio-grid', '1'); leftAsGrid();
         if (window.console) console.info('KCFOJ folio: Square redrew the plates; its grid is shown');
       }
     });
@@ -3366,7 +3547,7 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
 .kc-colo-text{margin:0!important;font:italic 400 15.5px/1.6 var(--kc-serif)!important;color:var(--kc-ink-soft)!important;text-wrap:balance}
 .kc-random{font:500 15px/1.3 var(--kc-serif)!important;color:var(--kc-accent)!important;text-decoration:underline!important;text-decoration-color:rgba(139,42,36,.4)!important;text-decoration-thickness:1px!important;text-underline-offset:.22em}
 .kc-random:hover{text-decoration-color:currentColor!important}
-.kc-colo-set{margin:4px 0 0!important;font:400 10px/1.5 var(--kc-mono)!important;letter-spacing:.18em;text-transform:uppercase;color:var(--kc-ink-soft)!important}
+.kc-colo-set{margin:4px 0 0!important;font:400 11px/1.5 var(--kc-mono)!important;letter-spacing:.18em;text-transform:uppercase;color:var(--kc-ink-soft)!important}
 .kc-snail{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:50px;height:30px;padding:1px 2px;color:var(--kc-accent);border-radius:4px;animation:kcCrawl 64s linear infinite}
 .kc-snail:focus-visible{outline:2px solid var(--kc-accent);outline-offset:3px}
 .kc-snail svg{display:block;width:100%;height:100%;overflow:visible}
@@ -3451,171 +3632,221 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
 })();
 
 /* ===== Part 13: past programs become living archive resources =====
-   The Living Margin already knows which old KCFOJ programs the site references.
-   This layer uses that same source of truth. Every referenced /product/ URL becomes
-   a past-program resource automatically: the page keeps its original URL/content,
-   commerce controls disappear, and the archive header is built from the existing
-   cross-reference title + Jungian terms. Optional archivePrograms metadata in
-   Part 0 can add a date, speaker, or override/add themes and related links. */
+   The archive now reads from Part 0's resource registry, the same source the
+   Living Margin uses. Status is explicit; /product/ alone never means "past".
+   The original Square H1 stays the one page title. This layer adds historical
+   context around it and only suppresses exact purchase controls/forms, never
+   description links or broad substring-matched wrappers. It is route-aware and
+   removes every archive mark when Square swaps to another page. */
 (function () { if (window.KCFOJ_SKIP) return;
   var D = document, W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
   if (!on('archivePrograms')) return;
-
-  function cleanPath(u) {
-    try {
-      var a = D.createElement('a'); a.href = u || '/';
-      return (a.pathname || '/').replace(/\/+$/, '') || '/';
-    } catch (e) { return String(u || '/').split(/[?#]/)[0].replace(/\/+$/, '') || '/'; }
-  }
-  function pushUnique(arr, value) {
-    if (!value) return;
-    for (var i = 0; i < arr.length; i++) if (String(arr[i]).toLowerCase() === String(value).toLowerCase()) return;
-    arr.push(value);
-  }
-  function pushPairUnique(arr, pair) {
-    if (!pair || pair.length < 2) return;
-    var p = cleanPath(pair[1]);
-    for (var i = 0; i < arr.length; i++) if (cleanPath(arr[i][1]) === p) return;
-    arr.push([pair[0], pair[1]]);
-  }
-  function archiveMap() {
-    var map = {}, lex = W.lexicon || [];
-
-    // First pass: every product page referenced anywhere in the Living Margin is
-    // an archive program, and every term that points to it becomes one of its themes.
-    lex.forEach(function (entry) {
-      (entry.at || []).forEach(function (pair) {
-        if (!pair || pair.length < 2) return;
-        var path = cleanPath(pair[1]);
-        if (!/^\/product\//i.test(path)) return;
-        var item = map[path] || (map[path] = { title: pair[0] || '', themes: [], related: [] });
-        if (!item.title && pair[0]) item.title = pair[0];
-        pushUnique(item.themes, entry.term || '');
-      });
-    });
-
-    // Second pass: other KCFOJ material cited under the same Jungian term becomes
-    // a natural "continue exploring" path for that program. Stories stay stories;
-    // other past product pages become neighboring archive chapters.
-    lex.forEach(function (entry) {
-      var refs = entry.at || [];
-      refs.forEach(function (pair) {
-        if (!pair || pair.length < 2) return;
-        var path = cleanPath(pair[1]);
-        var item = map[path];
-        if (!item) return;
-        refs.forEach(function (other) {
-          if (!other || other.length < 2 || cleanPath(other[1]) === path) return;
-          pushPairUnique(item.related, other);
-        });
-      });
-    });
-
-    // Optional hand-reviewed metadata/overrides. These merge with, rather than
-    // replace, the network derived from the existing site references.
-    var manual = W.archivePrograms || {};
-    Object.keys(manual).forEach(function (raw) {
-      var path = cleanPath(raw), extra = manual[raw] || {};
-      var item = map[path] || (map[path] = { title: extra.title || '', themes: [], related: [] });
-      ['title', 'date', 'speaker', 'note'].forEach(function (k) { if (extra[k]) item[k] = extra[k]; });
-      (extra.themes || []).forEach(function (x) { pushUnique(item.themes, x); });
-      (extra.related || []).forEach(function (x) { pushPairUnique(item.related, x); });
-    });
-    return map;
-  }
-
-  var PATH = cleanPath(location.pathname || '/');
-  var MAP = archiveMap();
-  var DATA = MAP[PATH];
-  if (!DATA) return;
+  var clean = window.KCFOJ_cleanPath || function (u) { return String(u || '/').split(/[?#]/)[0].replace(/\/+$/, '') || '/'; };
+  var getResource = window.KCFOJ_resourceForPath || function () { return null; };
+  var isPast = window.KCFOJ_isPastResource || function (r) { return !!(r && r.type === 'program' && r.status === 'past'); };
+  var relatedFor = window.KCFOJ_relatedFor || function () { return []; };
+  var live = null;
 
   var css = `
-html.kc-archive-program [data-kc-archive-buy="1"],html.kc-archive-program [data-kc-archive-original-title="1"]{display:none!important}
-.kc-archive-leaf{box-sizing:border-box;width:min(1120px,calc(100% - 32px));margin:clamp(24px,4vw,54px) auto clamp(34px,5vw,68px);padding:clamp(24px,4vw,48px);position:relative;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0)),var(--kc-card);border:1px solid rgba(168,132,79,.42);box-shadow:0 22px 52px -42px rgba(31,26,23,.55);color:var(--kc-ink)}
+html[data-kc-page="archive"] [data-kc-archive-buy="1"]{display:none!important}
+.kc-archive-rubric{box-sizing:border-box;width:100%;max-width:1120px;margin:clamp(22px,4vw,48px) 0 12px!important;font:500 12px/1.35 var(--kc-mono)!important;letter-spacing:.18em;text-transform:uppercase;color:var(--kc-accent)!important}
+.kc-archive-leaf{box-sizing:border-box;width:100%;max-width:1120px;margin:16px 0 clamp(34px,5vw,68px);padding:clamp(22px,3.5vw,42px);position:relative;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0)),var(--kc-card);border:1px solid rgba(168,132,79,.42);box-shadow:0 22px 52px -42px rgba(31,26,23,.55);color:var(--kc-ink)}
 .kc-archive-leaf:before{content:"";position:absolute;left:clamp(18px,3vw,34px);right:clamp(18px,3vw,34px);top:9px;height:1px;background:linear-gradient(90deg,transparent,var(--kc-accent),transparent);opacity:.68}
-.kc-archive-rubric{margin:0 0 12px!important;font:500 10px/1.3 var(--kc-mono)!important;letter-spacing:.2em;text-transform:uppercase;color:var(--kc-accent)!important}
-.kc-archive-leaf h1,.kc-archive-leaf h2{margin:0!important;max-width:20em;font-family:var(--kc-serif)!important;font-weight:500!important;line-height:1.02!important;color:var(--kc-ink)!important;text-wrap:balance}
-.kc-archive-title{font-size:clamp(30px,4.5vw,58px)!important}
-.kc-archive-meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 0 0!important;font:400 13px/1.5 var(--kc-mono)!important;letter-spacing:.04em;color:var(--kc-ink-soft)!important}
-.kc-archive-note{max-width:50em;margin:22px 0 0!important;font:400 clamp(17px,2vw,20px)/1.58 var(--kc-serif)!important;color:var(--kc-ink-soft)!important;text-wrap:pretty}
-.kc-archive-rule{height:1px;margin:28px 0;background:linear-gradient(90deg,var(--kc-gold),rgba(168,132,79,.15),transparent)}
+.kc-archive-meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0!important;font:400 15px/1.5 var(--kc-serif)!important;color:var(--kc-ink)!important}
+.kc-archive-note{max-width:52em;margin:18px 0 0!important;font:400 clamp(16px,1.8vw,19px)/1.58 var(--kc-serif)!important;color:var(--kc-ink-soft)!important;text-wrap:pretty}
+.kc-archive-rule{height:1px;margin:24px 0;background:linear-gradient(90deg,var(--kc-gold),rgba(168,132,79,.15),transparent)}
 .kc-archive-sub{margin:0 0 12px!important;font:500 11px/1.3 var(--kc-mono)!important;letter-spacing:.16em;text-transform:uppercase;color:var(--kc-verd)!important}
 .kc-archive-themes{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
-.kc-archive-theme{display:inline-flex;align-items:center;min-height:30px;padding:5px 10px;border:1px solid rgba(139,42,36,.24);background:rgba(244,237,225,.58);font:500 11px/1.2 var(--kc-mono);letter-spacing:.05em;color:var(--kc-accent)}
-.kc-archive-related{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.kc-archive-theme{display:inline-flex;align-items:center;min-height:32px;padding:6px 10px;border:1px solid rgba(139,42,36,.24);background:rgba(244,237,225,.58);font:500 11px/1.2 var(--kc-mono);letter-spacing:.05em;color:var(--kc-accent)}
+a.kc-archive-theme{text-decoration:none!important}
+a.kc-archive-theme:hover{text-decoration:underline!important;text-underline-offset:.2em}
+.kc-archive-related{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:0;padding:0;list-style:none}
 .kc-archive-related a{display:flex;height:100%;box-sizing:border-box;padding:14px 15px;border:1px solid rgba(168,132,79,.3);background:rgba(244,237,225,.46);font:500 15px/1.35 var(--kc-serif)!important;color:var(--kc-ink)!important;text-decoration:none!important;transition:transform .28s var(--kc-e),border-color .28s ease,background .28s ease}
 .kc-archive-related a:hover{transform:translateY(-2px);border-color:rgba(139,42,36,.45);background:rgba(244,237,225,.8)}
-.kc-archive-related a:after{content:" ↗";margin-left:auto;padding-left:10px;color:var(--kc-accent)}
-.kc-archive-current{display:inline-block;margin-top:22px;font:500 13px/1.4 var(--kc-mono)!important;letter-spacing:.04em;color:var(--kc-accent)!important;text-underline-offset:.24em}
-@media(max-width:760px){.kc-archive-leaf{width:calc(100% - 20px);margin-top:18px;padding:24px 18px 28px}.kc-archive-related{grid-template-columns:1fr}.kc-archive-title{font-size:clamp(29px,9vw,42px)!important}}
+.kc-archive-actions{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:22px}
+.kc-archive-actions a{font:500 13px/1.4 var(--kc-mono)!important;letter-spacing:.04em;color:var(--kc-accent)!important;text-underline-offset:.24em}
+.kc-archive-original{margin:24px 0 -2px!important;padding-top:18px;border-top:1px solid rgba(168,132,79,.24);font:500 11px/1.35 var(--kc-mono)!important;letter-spacing:.12em;text-transform:uppercase;color:var(--kc-ink-soft)!important}
+@media(max-width:760px){.kc-archive-leaf{padding:22px 18px 26px}.kc-archive-related{grid-template-columns:1fr}}
 `;
   window.KCFOJ_style(css, 'archive-programs');
 
   function esc(s) { return window.KCFOJ_esc ? window.KCFOJ_esc(s) : String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function title() {
-    if (DATA.title) return DATA.title;
-    var h = D.querySelector('main h1, [role="main"] h1, h1');
-    var t = h && h.textContent ? h.textContent.trim() : (D.title || '').replace(/\s*\|.*$/, '').trim();
-    return t || 'Past KCFOJ Program';
+  function dateObj(s) { if (!s) return null; var d = new Date(s + 'T12:00:00'); return isNaN(d.getTime()) ? null : d; }
+  function dateLabel(s) { var d = dateObj(s); if (!d) return ''; try { return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }); } catch (e) { return s; } }
+  function monthYear(s) { var d = dateObj(s); if (!d) return ''; try { return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }); } catch (e) { return s; } }
+  function yearOf(s) { var d = dateObj(s); return d ? String(d.getFullYear()) : ''; }
+  function productBlock() {
+    var roots = D.querySelectorAll('main, [role="main"], #main, .main-content, [data-page-type="product"]');
+    for (var i = 0; i < roots.length; i++) {
+      if (!roots[i].querySelector('h1')) continue;
+      return roots[i];
+    }
+    return null;
   }
-  function host() {
-    return D.querySelector('main, [role="main"], #main, .main-content, [data-page-type="product"]') || D.body;
+  function titleKey(s) {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ');
   }
-  function already() { return !!D.querySelector('.kc-archive-leaf'); }
-  function markPurchaseControls(root) {
-    var nodes = root.querySelectorAll('button, a, input[type="submit"], input[type="button"], select, [role="button"]');
-    var re = /(?:add\s+to\s+cart|buy\s+now|register|registration|tickets?|purchase|checkout|sold\s+out|unavailable|quantity)/i;
-    [].forEach.call(nodes, function (el) {
-      var txt = ((el.getAttribute('aria-label') || '') + ' ' + (el.value || '') + ' ' + (el.textContent || '')).replace(/\s+/g, ' ').trim();
-      if (!re.test(txt)) return;
-      var box = el;
-      for (var i = 0, p = el.parentElement; i < 3 && p; i++, p = p.parentElement) {
-        var cls = String(p.className || '') + ' ' + (p.getAttribute('data-testid') || '') + ' ' + (p.getAttribute('data-hook') || '');
-        var words = (p.textContent || '').trim().split(/\s+/).filter(Boolean).length;
-        if (/(?:quantity|purchase|add.?to.?cart|checkout|cart|actions?|buttons?|form)/i.test(cls) && words <= 45) box = p;
-      }
-      box.setAttribute('data-kc-archive-buy', '1');
+  function titleFits(root, data) {
+    var h = root && root.querySelector('h1'), got = titleKey(h && h.textContent);
+    if (!got) return false;
+    var want = [data && data.title, data && data.short].map(titleKey).filter(Boolean);
+    for (var i = 0; i < want.length; i++) {
+      var n = Math.min(28, want[i].length, got.length);
+      if (n >= 12 && want[i].slice(0, n) === got.slice(0, n)) return true;
+      if (want[i].length >= 16 && got.indexOf(want[i]) === 0) return true;
+    }
+    return false;
+  }
+  function exactAction(el) {
+    var txt = (el.getAttribute('aria-label') || el.value || el.textContent || '').replace(/\s+/g, ' ').trim();
+    return /^(?:add(?: item)? to cart|add to bag|buy now|register(?: now)?|get tickets?|purchase|checkout|sold out|unavailable|attend(?:\s+\$?\d+(?:\.\d{2})?)?)$/i.test(txt);
+  }
+  function exactPriceText(el) {
+    if (!el || el.closest('.kc-archive-leaf, header, nav, footer')) return false;
+    var txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!txt || txt.length > 36 || el.children.length > 2) return false;
+    return /^(?:US\s*)?\$\s*\d[\d,]*(?:\.\d{2})?(?:\s*(?:-|–|—|to)\s*(?:US\s*)?\$\s*\d[\d,]*(?:\.\d{2})?)?$/.test(txt);
+  }
+  function fieldWrap(el, root) {
+    if (!el || !root) return null;
+    var label = el.closest('label');
+    if (label && root.contains(label)) return label;
+    var n = el.parentElement, best = el;
+    for (var i = 0; n && n !== root && i < 3; i++, n = n.parentElement) {
+      if (n.querySelector('h1,h2,h3')) break;
+      var words = (n.textContent || '').trim().split(/\s+/).filter(Boolean).length;
+      if (words <= 24) best = n; else break;
+    }
+    return best;
+  }
+  function hideCommerce(root) {
+    if (!root) return;
+    // Action buttons: exact whole-label matches only, scoped to the product area.
+    [].forEach.call(root.querySelectorAll('button, input[type="submit"], input[type="button"]'), function (el) {
+      if (el.closest('header, nav, footer, .kc-archive-leaf') || !exactAction(el)) return;
+      var form = el.closest('form');
+      if (form && root.contains(form) && !form.querySelector('h1,h2,h3') && form.querySelector('select, input[type="number"], input[type="radio"]') && (form.textContent || '').trim().split(/\s+/).filter(Boolean).length <= 55) form.setAttribute('data-kc-archive-buy', '1');
+      else el.setAttribute('data-kc-archive-buy', '1');
     });
-    [].forEach.call(root.querySelectorAll('[class*="quantity" i], [class*="purchase" i], [class*="add-to-cart" i], [class*="checkout" i], [class*="price" i]'), function (el) {
-      var max = /price/i.test(String(el.className || '')) ? 12 : 45;
-      if ((el.textContent || '').trim().split(/\s+/).filter(Boolean).length <= max) el.setAttribute('data-kc-archive-buy', '1');
+    // Product option / quantity inputs have no archival purpose. Hide their compact field wrapper,
+    // never a description block or a container with a heading.
+    [].forEach.call(root.querySelectorAll('select, input[type="number"], input[type="radio"]'), function (el) {
+      if (el.closest('.kc-archive-leaf, header, nav, footer')) return;
+      var wrap = fieldWrap(el, root);
+      if (wrap) wrap.setAttribute('data-kc-archive-buy', '1');
+    });
+    // Square may render the price separately from the action form. Restrict this to elements whose
+    // complete visible text is only a currency price/range; ordinary description copy is untouched.
+    [].forEach.call(root.querySelectorAll('[itemprop="price"], [data-testid="price"], [data-test="price"], [aria-label="Price"], h2, h3, p, span, div'), function (el) {
+      if (exactPriceText(el)) el.setAttribute('data-kc-archive-buy', '1');
     });
   }
-  function makeLeaf() {
+  function themeHtml(data) {
+    return (data.themes || []).map(function (x) {
+      if (W.lexiconUrl) return '<li><a class="kc-archive-theme" href="' + esc(W.lexiconUrl) + '#kc-' + esc(String(x).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '">' + esc(x) + '</a></li>';
+      return '<li class="kc-archive-theme">' + esc(x) + '</li>';
+    }).join('');
+  }
+  function makeLeaf(data) {
     var leaf = D.createElement('section');
     leaf.className = 'kc-archive-leaf';
     leaf.setAttribute('aria-label', 'KCFOJ archive information');
-    leaf.setAttribute('data-kc-self', '1');
-
-    var themes = (DATA.themes || []).map(function (x) { return '<li class="kc-archive-theme">' + esc(x) + '</li>'; }).join('');
-    var related = (DATA.related || []).map(function (x) { return '<li><a href="' + esc(x[1]) + '">' + esc(x[0]) + '</a></li>'; }).join('');
-    var meta = [];
-    if (DATA.date) meta.push('<span>Presented ' + esc(DATA.date) + '</span>');
-    if (DATA.speaker) meta.push('<span>with ' + esc(DATA.speaker) + '</span>');
-    var note = DATA.note || 'This program is preserved as part of the Kansas City Friends of Jung living archive. The original program material remains below; registration for this event is closed.';
-
+    if (window.KCFOJ_self) window.KCFOJ_self.add(leaf);
+    var meta = [], dl = dateLabel(data.date), yr = yearOf(data.date), my = monthYear(data.date);
+    if (dl) meta.push('<span>Presented ' + esc(dl) + '</span>');
+    if (data.speaker) meta.push('<span>with ' + esc(data.speaker) + '</span>');
+    var note = data.note || (yr ? 'KCFOJ presented this program in ' + yr + '. We keep it as part of our archive; the description below is as originally published. Presenters’ views and materials remain their own.' : 'KCFOJ keeps this past program as part of our archive. The description below is as originally published. Presenters’ views and materials remain their own.');
+    var themes = themeHtml(data);
+    var related = relatedFor(data, 6).map(function (r) { return '<li><a href="' + esc(r.url) + '">' + esc(r.short || r.title || 'KCFOJ resource') + '</a></li>'; }).join('');
     leaf.innerHTML =
-      '<p class="kc-archive-rubric">Past Program · KCFOJ Archive</p>' +
-      '<h1 class="kc-archive-title">' + esc(title()) + '</h1>' +
       (meta.length ? '<p class="kc-archive-meta">' + meta.join('<span aria-hidden="true">·</span>') + '</p>' : '') +
       '<p class="kc-archive-note">' + esc(note) + '</p>' +
       ((themes || related) ? '<div class="kc-archive-rule" aria-hidden="true"></div>' : '') +
       (themes ? '<p class="kc-archive-sub">Connected ideas</p><ul class="kc-archive-themes">' + themes + '</ul>' : '') +
       (related ? '<div class="kc-archive-rule" aria-hidden="true"></div><p class="kc-archive-sub">Continue exploring the archive</p><ul class="kc-archive-related">' + related + '</ul>' : '') +
-      '<a class="kc-archive-current" href="/events">See current KCFOJ programs →</a>';
+      '<div class="kc-archive-actions"><a href="/events">See current KCFOJ programs →</a><a href="/membership">Membership →</a></div>' +
+      '<p class="kc-archive-original">As originally announced' + (my ? ', ' + esc(my) : '') + '</p>';
     return leaf;
   }
+  function makeRubric() {
+    var p = D.createElement('p');
+    p.className = 'kc-archive-rubric';
+    p.textContent = 'Past Program · KCFOJ Archive';
+    if (window.KCFOJ_self) window.KCFOJ_self.add(p);
+    return p;
+  }
+  function teardown() {
+    if (D.documentElement.getAttribute('data-kc-page') === 'archive') D.documentElement.removeAttribute('data-kc-page');
+    [].forEach.call(D.querySelectorAll('.kc-archive-leaf, .kc-archive-rubric'), function (n) { if (n.parentNode) n.parentNode.removeChild(n); });
+    [].forEach.call(D.querySelectorAll('[data-kc-archive-buy]'), function (n) { n.removeAttribute('data-kc-archive-buy'); });
+    live = null;
+  }
   function archive() {
-    D.documentElement.classList.add('kc-archive-program');
-    if (D.body) D.body.classList.add('kc-archive-program');
-    var root = host();
-    markPurchaseControls(root);
-    var originalTitle = root.querySelector('h1');
-    if (originalTitle && !originalTitle.closest('.kc-archive-leaf')) originalTitle.setAttribute('data-kc-archive-original-title', '1');
-    if (already()) return;
-    var leaf = makeLeaf();
-    var first = root.firstElementChild;
-    if (first) root.insertBefore(leaf, first); else root.appendChild(leaf);
+    var path = clean(location.pathname || '/'), data = getResource(path);
+    if (live && live !== path) teardown();
+    if (!data || !isPast(data)) { if (live || D.documentElement.getAttribute('data-kc-page') === 'archive') teardown(); return; }
+    var root = productBlock();
+    if (!root || !titleFits(root, data)) return;
+    var h1 = root.querySelector('h1');
+    if (!h1) return;
+    live = path;
+    if (D.documentElement.getAttribute('data-kc-page') !== 'archive') D.documentElement.setAttribute('data-kc-page', 'archive');
+    hideCommerce(root);
+    if (!D.querySelector('.kc-archive-rubric')) {
+      var rubric = makeRubric();
+      h1.parentNode.insertBefore(rubric, h1);
+    }
+    if (!D.querySelector('.kc-archive-leaf')) {
+      var leaf = makeLeaf(data);
+      if (h1.nextSibling) h1.parentNode.insertBefore(leaf, h1.nextSibling); else h1.parentNode.appendChild(leaf);
+    }
+  }
+
+  window.KCFOJ_archive = function () {
+    var path = clean(location.pathname || '/'), r = getResource(path), root, h1, got;
+    if (!r) return { path: path, applied: false, reason: 'not registered' };
+    var base = { path: path, title: r.title, status: r.status, reviewed: !!r.reviewed, images: r.images || '' };
+    if (!isPast(r)) { base.applied = false; base.reason = 'not past'; return base; }
+    root = productBlock();
+    if (!root) { base.applied = false; base.reason = 'product block not found'; return base; }
+    h1 = root.querySelector('h1'); got = h1 ? (h1.textContent || '').replace(/\s+/g, ' ').trim() : '';
+    if (!titleFits(root, r)) { base.applied = false; base.reason = 'title mismatch'; base.squareTitle = got; return base; }
+    base.applied = D.documentElement.getAttribute('data-kc-page') === 'archive' && !!D.querySelector('.kc-archive-leaf');
+    base.reason = base.applied ? 'applied' : 'waiting for archive pass';
+    base.squareTitle = got;
+    return base;
+  };
+
+  // Square can change DOM and URL in either order. Observe History API changes as a route signal
+  // so an archive state is torn down immediately instead of waiting for the next DOM mutation.
+  if (!window.KCFOJ_ARCHIVE_ROUTE_WATCH) {
+    window.KCFOJ_ARCHIVE_ROUTE_WATCH = true;
+    var routeEvent = 'kcfoj:route';
+    ['pushState', 'replaceState'].forEach(function (name) {
+      var original = history[name];
+      if (!original || original._kcfojArchiveWrapped) return;
+      var wrapped = function () {
+        var out = original.apply(history, arguments);
+        try { window.dispatchEvent(new Event(routeEvent)); } catch (e) {}
+        return out;
+      };
+      wrapped._kcfojArchiveWrapped = true;
+      history[name] = wrapped;
+    });
+    var watchedPath = clean(location.pathname || '/');
+    var routeRefresh = function () {
+      var nextPath = clean(location.pathname || '/');
+      if (nextPath === watchedPath) return;
+      watchedPath = nextPath;
+      teardown();
+      if (window.KCFOJ_schedule) window.KCFOJ_schedule(true);
+      setTimeout(function () {
+        try { archive(); } catch (e) {}
+        if (window.KCFOJ_schedule) window.KCFOJ_schedule(true);
+      }, 60);
+    };
+    window.addEventListener(routeEvent, routeRefresh);
+    window.addEventListener('popstate', routeRefresh);
   }
 
   var prev = window.KCFOJ_wow;
@@ -3626,5 +3857,5 @@ html.kc-archive-program [data-kc-archive-buy="1"],html.kc-archive-program [data-
   try { archive(); } catch (e) { if (window.console) console.warn('KCFOJ archive:', e); }
 })();
 
-// end of kcfoj-polish v3.3.1
+// end of kcfoj-polish v3.4.4
 // (padding: losing these last lines in a copy and paste does no harm)
