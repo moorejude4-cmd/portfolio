@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.2.2, stabilization)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.3.1, archive resources)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -31,6 +31,7 @@
    Part 10  Today / Tonight / Tomorrow ribbon on the date seals
    Part 11  Plates as a manuscript spread
    Part 12  Colophon, Open at random, and the snail
+   Part 13  Past programs become living archive resources
 
    Troubleshooting, in the browser console:
      KCFOJ.stats()         how often the page was repainted and re-checked, and how long it took
@@ -69,7 +70,8 @@ window.KCFOJ_WORDS = {
     tonightRibbon: true,     // Today / Tonight / Tomorrow on the seals, only when the year is certain
     quoteRotation: true,     // a different night-page quote on later visits
     colophon: true,          // the strip under the footer, with Open at random
-    drollerie: true          // the snail in the colophon
+    drollerie: true,         // the snail in the colophon
+    archivePrograms: true    // turns past event/product pages already referenced by the site into archive resources
   },
   corners: 2,                              // button and card corners in px (v2.6 used 8)
   name: 'Kansas City Friends of Jung',
@@ -81,6 +83,19 @@ window.KCFOJ_WORDS = {
   glossMax: 8,                             // the most terms glossed on one page
   quote: 'Who looks outside, dreams; who looks inside, awakes.',
   by: 'C. G. Jung',
+
+  /* Past-program archive (Part 13). Every /product/ page already referenced by
+     the Living Margin below is treated as part of the KCFOJ past-program archive.
+     Part 13 builds its archive title, Jungian themes and related paths directly
+     from those existing cross-references, so this is one system rather than a
+     separate hand-maintained list. archivePrograms is only for optional metadata
+     or overrides when we know more about a particular program. */
+  archivePrograms: {
+    '/product/the-warrior-s-return-jungian-psychology-the-odyssey-as-a-roadmap-to-guide-our-veterans-home/30': {
+      date: 'November 8, 2024',
+      speaker: 'Adam Magers'
+    }
+  },
 
   /* The Living Margin (Part 9). Each entry: the word as shown, the pattern
      that finds it in body text, a plain-language gloss, and pages on this
@@ -3435,5 +3450,181 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
   };
 })();
 
-// end of kcfoj-polish v3.1.2
+/* ===== Part 13: past programs become living archive resources =====
+   The Living Margin already knows which old KCFOJ programs the site references.
+   This layer uses that same source of truth. Every referenced /product/ URL becomes
+   a past-program resource automatically: the page keeps its original URL/content,
+   commerce controls disappear, and the archive header is built from the existing
+   cross-reference title + Jungian terms. Optional archivePrograms metadata in
+   Part 0 can add a date, speaker, or override/add themes and related links. */
+(function () { if (window.KCFOJ_SKIP) return;
+  var D = document, W = window.KCFOJ_WORDS || {}, on = window.KCFOJ_on || function () { return true; };
+  if (!on('archivePrograms')) return;
+
+  function cleanPath(u) {
+    try {
+      var a = D.createElement('a'); a.href = u || '/';
+      return (a.pathname || '/').replace(/\/+$/, '') || '/';
+    } catch (e) { return String(u || '/').split(/[?#]/)[0].replace(/\/+$/, '') || '/'; }
+  }
+  function pushUnique(arr, value) {
+    if (!value) return;
+    for (var i = 0; i < arr.length; i++) if (String(arr[i]).toLowerCase() === String(value).toLowerCase()) return;
+    arr.push(value);
+  }
+  function pushPairUnique(arr, pair) {
+    if (!pair || pair.length < 2) return;
+    var p = cleanPath(pair[1]);
+    for (var i = 0; i < arr.length; i++) if (cleanPath(arr[i][1]) === p) return;
+    arr.push([pair[0], pair[1]]);
+  }
+  function archiveMap() {
+    var map = {}, lex = W.lexicon || [];
+
+    // First pass: every product page referenced anywhere in the Living Margin is
+    // an archive program, and every term that points to it becomes one of its themes.
+    lex.forEach(function (entry) {
+      (entry.at || []).forEach(function (pair) {
+        if (!pair || pair.length < 2) return;
+        var path = cleanPath(pair[1]);
+        if (!/^\/product\//i.test(path)) return;
+        var item = map[path] || (map[path] = { title: pair[0] || '', themes: [], related: [] });
+        if (!item.title && pair[0]) item.title = pair[0];
+        pushUnique(item.themes, entry.term || '');
+      });
+    });
+
+    // Second pass: other KCFOJ material cited under the same Jungian term becomes
+    // a natural "continue exploring" path for that program. Stories stay stories;
+    // other past product pages become neighboring archive chapters.
+    lex.forEach(function (entry) {
+      var refs = entry.at || [];
+      refs.forEach(function (pair) {
+        if (!pair || pair.length < 2) return;
+        var path = cleanPath(pair[1]);
+        var item = map[path];
+        if (!item) return;
+        refs.forEach(function (other) {
+          if (!other || other.length < 2 || cleanPath(other[1]) === path) return;
+          pushPairUnique(item.related, other);
+        });
+      });
+    });
+
+    // Optional hand-reviewed metadata/overrides. These merge with, rather than
+    // replace, the network derived from the existing site references.
+    var manual = W.archivePrograms || {};
+    Object.keys(manual).forEach(function (raw) {
+      var path = cleanPath(raw), extra = manual[raw] || {};
+      var item = map[path] || (map[path] = { title: extra.title || '', themes: [], related: [] });
+      ['title', 'date', 'speaker', 'note'].forEach(function (k) { if (extra[k]) item[k] = extra[k]; });
+      (extra.themes || []).forEach(function (x) { pushUnique(item.themes, x); });
+      (extra.related || []).forEach(function (x) { pushPairUnique(item.related, x); });
+    });
+    return map;
+  }
+
+  var PATH = cleanPath(location.pathname || '/');
+  var MAP = archiveMap();
+  var DATA = MAP[PATH];
+  if (!DATA) return;
+
+  var css = `
+html.kc-archive-program [data-kc-archive-buy="1"],html.kc-archive-program [data-kc-archive-original-title="1"]{display:none!important}
+.kc-archive-leaf{box-sizing:border-box;width:min(1120px,calc(100% - 32px));margin:clamp(24px,4vw,54px) auto clamp(34px,5vw,68px);padding:clamp(24px,4vw,48px);position:relative;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0)),var(--kc-card);border:1px solid rgba(168,132,79,.42);box-shadow:0 22px 52px -42px rgba(31,26,23,.55);color:var(--kc-ink)}
+.kc-archive-leaf:before{content:"";position:absolute;left:clamp(18px,3vw,34px);right:clamp(18px,3vw,34px);top:9px;height:1px;background:linear-gradient(90deg,transparent,var(--kc-accent),transparent);opacity:.68}
+.kc-archive-rubric{margin:0 0 12px!important;font:500 10px/1.3 var(--kc-mono)!important;letter-spacing:.2em;text-transform:uppercase;color:var(--kc-accent)!important}
+.kc-archive-leaf h1,.kc-archive-leaf h2{margin:0!important;max-width:20em;font-family:var(--kc-serif)!important;font-weight:500!important;line-height:1.02!important;color:var(--kc-ink)!important;text-wrap:balance}
+.kc-archive-title{font-size:clamp(30px,4.5vw,58px)!important}
+.kc-archive-meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 0 0!important;font:400 13px/1.5 var(--kc-mono)!important;letter-spacing:.04em;color:var(--kc-ink-soft)!important}
+.kc-archive-note{max-width:50em;margin:22px 0 0!important;font:400 clamp(17px,2vw,20px)/1.58 var(--kc-serif)!important;color:var(--kc-ink-soft)!important;text-wrap:pretty}
+.kc-archive-rule{height:1px;margin:28px 0;background:linear-gradient(90deg,var(--kc-gold),rgba(168,132,79,.15),transparent)}
+.kc-archive-sub{margin:0 0 12px!important;font:500 11px/1.3 var(--kc-mono)!important;letter-spacing:.16em;text-transform:uppercase;color:var(--kc-verd)!important}
+.kc-archive-themes{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.kc-archive-theme{display:inline-flex;align-items:center;min-height:30px;padding:5px 10px;border:1px solid rgba(139,42,36,.24);background:rgba(244,237,225,.58);font:500 11px/1.2 var(--kc-mono);letter-spacing:.05em;color:var(--kc-accent)}
+.kc-archive-related{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.kc-archive-related a{display:flex;height:100%;box-sizing:border-box;padding:14px 15px;border:1px solid rgba(168,132,79,.3);background:rgba(244,237,225,.46);font:500 15px/1.35 var(--kc-serif)!important;color:var(--kc-ink)!important;text-decoration:none!important;transition:transform .28s var(--kc-e),border-color .28s ease,background .28s ease}
+.kc-archive-related a:hover{transform:translateY(-2px);border-color:rgba(139,42,36,.45);background:rgba(244,237,225,.8)}
+.kc-archive-related a:after{content:" ↗";margin-left:auto;padding-left:10px;color:var(--kc-accent)}
+.kc-archive-current{display:inline-block;margin-top:22px;font:500 13px/1.4 var(--kc-mono)!important;letter-spacing:.04em;color:var(--kc-accent)!important;text-underline-offset:.24em}
+@media(max-width:760px){.kc-archive-leaf{width:calc(100% - 20px);margin-top:18px;padding:24px 18px 28px}.kc-archive-related{grid-template-columns:1fr}.kc-archive-title{font-size:clamp(29px,9vw,42px)!important}}
+`;
+  window.KCFOJ_style(css, 'archive-programs');
+
+  function esc(s) { return window.KCFOJ_esc ? window.KCFOJ_esc(s) : String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function title() {
+    if (DATA.title) return DATA.title;
+    var h = D.querySelector('main h1, [role="main"] h1, h1');
+    var t = h && h.textContent ? h.textContent.trim() : (D.title || '').replace(/\s*\|.*$/, '').trim();
+    return t || 'Past KCFOJ Program';
+  }
+  function host() {
+    return D.querySelector('main, [role="main"], #main, .main-content, [data-page-type="product"]') || D.body;
+  }
+  function already() { return !!D.querySelector('.kc-archive-leaf'); }
+  function markPurchaseControls(root) {
+    var nodes = root.querySelectorAll('button, a, input[type="submit"], input[type="button"], select, [role="button"]');
+    var re = /(?:add\s+to\s+cart|buy\s+now|register|registration|tickets?|purchase|checkout|sold\s+out|unavailable|quantity)/i;
+    [].forEach.call(nodes, function (el) {
+      var txt = ((el.getAttribute('aria-label') || '') + ' ' + (el.value || '') + ' ' + (el.textContent || '')).replace(/\s+/g, ' ').trim();
+      if (!re.test(txt)) return;
+      var box = el;
+      for (var i = 0, p = el.parentElement; i < 3 && p; i++, p = p.parentElement) {
+        var cls = String(p.className || '') + ' ' + (p.getAttribute('data-testid') || '') + ' ' + (p.getAttribute('data-hook') || '');
+        var words = (p.textContent || '').trim().split(/\s+/).filter(Boolean).length;
+        if (/(?:quantity|purchase|add.?to.?cart|checkout|cart|actions?|buttons?|form)/i.test(cls) && words <= 45) box = p;
+      }
+      box.setAttribute('data-kc-archive-buy', '1');
+    });
+    [].forEach.call(root.querySelectorAll('[class*="quantity" i], [class*="purchase" i], [class*="add-to-cart" i], [class*="checkout" i], [class*="price" i]'), function (el) {
+      var max = /price/i.test(String(el.className || '')) ? 12 : 45;
+      if ((el.textContent || '').trim().split(/\s+/).filter(Boolean).length <= max) el.setAttribute('data-kc-archive-buy', '1');
+    });
+  }
+  function makeLeaf() {
+    var leaf = D.createElement('section');
+    leaf.className = 'kc-archive-leaf';
+    leaf.setAttribute('aria-label', 'KCFOJ archive information');
+    leaf.setAttribute('data-kc-self', '1');
+
+    var themes = (DATA.themes || []).map(function (x) { return '<li class="kc-archive-theme">' + esc(x) + '</li>'; }).join('');
+    var related = (DATA.related || []).map(function (x) { return '<li><a href="' + esc(x[1]) + '">' + esc(x[0]) + '</a></li>'; }).join('');
+    var meta = [];
+    if (DATA.date) meta.push('<span>Presented ' + esc(DATA.date) + '</span>');
+    if (DATA.speaker) meta.push('<span>with ' + esc(DATA.speaker) + '</span>');
+    var note = DATA.note || 'This program is preserved as part of the Kansas City Friends of Jung living archive. The original program material remains below; registration for this event is closed.';
+
+    leaf.innerHTML =
+      '<p class="kc-archive-rubric">Past Program · KCFOJ Archive</p>' +
+      '<h1 class="kc-archive-title">' + esc(title()) + '</h1>' +
+      (meta.length ? '<p class="kc-archive-meta">' + meta.join('<span aria-hidden="true">·</span>') + '</p>' : '') +
+      '<p class="kc-archive-note">' + esc(note) + '</p>' +
+      ((themes || related) ? '<div class="kc-archive-rule" aria-hidden="true"></div>' : '') +
+      (themes ? '<p class="kc-archive-sub">Connected ideas</p><ul class="kc-archive-themes">' + themes + '</ul>' : '') +
+      (related ? '<div class="kc-archive-rule" aria-hidden="true"></div><p class="kc-archive-sub">Continue exploring the archive</p><ul class="kc-archive-related">' + related + '</ul>' : '') +
+      '<a class="kc-archive-current" href="/events">See current KCFOJ programs →</a>';
+    return leaf;
+  }
+  function archive() {
+    D.documentElement.classList.add('kc-archive-program');
+    if (D.body) D.body.classList.add('kc-archive-program');
+    var root = host();
+    markPurchaseControls(root);
+    var originalTitle = root.querySelector('h1');
+    if (originalTitle && !originalTitle.closest('.kc-archive-leaf')) originalTitle.setAttribute('data-kc-archive-original-title', '1');
+    if (already()) return;
+    var leaf = makeLeaf();
+    var first = root.firstElementChild;
+    if (first) root.insertBefore(leaf, first); else root.appendChild(leaf);
+  }
+
+  var prev = window.KCFOJ_wow;
+  window.KCFOJ_wow = function () {
+    if (prev) prev();
+    try { archive(); } catch (e) { if (window.console) console.warn('KCFOJ archive:', e); }
+  };
+  try { archive(); } catch (e) { if (window.console) console.warn('KCFOJ archive:', e); }
+})();
+
+// end of kcfoj-polish v3.3.1
 // (padding: losing these last lines in a copy and paste does no harm)
