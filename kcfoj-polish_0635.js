@@ -1,4 +1,4 @@
-/* KC Friends of Jung: "The Commonplace Book" layer (v3.4.4, final polish)
+/* KC Friends of Jung: "The Commonplace Book" layer (v3.4.7, stable archive ticket suppression)
    Loaded on every page from Square's Tracking tools, after a small boot block
    (see the Header code snippet that ships with this file). Changes go live once
    GitHub Pages redeploys; no Square republish needed.
@@ -40,7 +40,7 @@
    Add #kcdebug to a page address to see how the band under the banner was placed. */
 window.KCFOJ_SKIP = !!window.KCFOJ_RUNNING;
 window.KCFOJ_RUNNING = true;
-window.KCFOJ_VERSION = '3.4.4';
+window.KCFOJ_VERSION = '3.4.7';
 
 
 /* ===== Part 0: words and switches you can edit ===== */
@@ -2264,7 +2264,7 @@ html[data-kc-motion="paused"] .kc-band-track,html[data-kc-motion="paused"] [data
     lanternDirty();
   };
   window.KCFOJ = {
-    version: window.KCFOJ_VERSION || '3.4.4',
+    version: window.KCFOJ_VERSION || '3.4.7',
     replayIntro: function () { window.scrollTo(0, 0); showVeil(true); surface(true); },
     stats: function () {
       var s = window.KCFOJ_stats || {}, out = {};
@@ -3645,7 +3645,7 @@ ${PAGE}{flex:0 0 var(--kc-page)!important;width:var(--kc-page)!important;max-wid
   var getResource = window.KCFOJ_resourceForPath || function () { return null; };
   var isPast = window.KCFOJ_isPastResource || function (r) { return !!(r && r.type === 'program' && r.status === 'past'); };
   var relatedFor = window.KCFOJ_relatedFor || function () { return []; };
-  var live = null;
+  var live = null, liveRoot = null, ticketMO = null;
 
   var css = `
 html[data-kc-page="archive"] [data-kc-archive-buy="1"]{display:none!important}
@@ -3699,7 +3699,8 @@ a.kc-archive-theme:hover{text-decoration:underline!important;text-underline-offs
   }
   function exactAction(el) {
     var txt = (el.getAttribute('aria-label') || el.value || el.textContent || '').replace(/\s+/g, ' ').trim();
-    return /^(?:add(?: item)? to cart|add to bag|buy now|register(?: now)?|get tickets?|purchase|checkout|sold out|unavailable|attend(?:\s+\$?\d+(?:\.\d{2})?)?)$/i.test(txt);
+    // Deliberately exclude Checkout: the site cart can exist outside the event page and must stay usable.
+    return /^(?:add(?: item)? to cart|add to bag|buy now|register(?: now)?|get tickets?|purchase|sold out|unavailable|attend(?:\s+\$?\d+(?:\.\d{2})?)?)$/i.test(txt);
   }
   function exactPriceText(el) {
     if (!el || el.closest('.kc-archive-leaf, header, nav, footer')) return false;
@@ -3719,28 +3720,148 @@ a.kc-archive-theme:hover{text-decoration:underline!important;text-underline-offs
     }
     return best;
   }
-  function hideCommerce(root) {
-    if (!root) return;
-    // Action buttons: exact whole-label matches only, scoped to the product area.
-    [].forEach.call(root.querySelectorAll('button, input[type="submit"], input[type="button"]'), function (el) {
-      if (el.closest('header, nav, footer, .kc-archive-leaf') || !exactAction(el)) return;
-      var form = el.closest('form');
-      if (form && root.contains(form) && !form.querySelector('h1,h2,h3') && form.querySelector('select, input[type="number"], input[type="radio"]') && (form.textContent || '').trim().split(/\s+/).filter(Boolean).length <= 55) form.setAttribute('data-kc-archive-buy', '1');
-      else el.setAttribute('data-kc-archive-buy', '1');
+  function compactWords(el) {
+    return (el && el.textContent || '').replace(/\s+/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+  }
+  function exactText(el, re) {
+    var txt = (el && el.textContent || '').replace(/\s+/g, ' ').trim();
+    return !!txt && re.test(txt);
+  }
+  function smallSectionWrap(el, root, maxWords) {
+    if (!el || !root) return null;
+    var best = el, n = el.parentElement;
+    for (var i = 0; n && n !== root && i < 4; i++, n = n.parentElement) {
+      if (n.matches && n.matches('header, nav, footer, .kc-archive-leaf')) break;
+      if (n.querySelector && n.querySelector('h1')) break;
+      var longCopy = n.querySelector && n.querySelector('p, [class*="description" i], [data-testid*="description" i]');
+      if (longCopy && (longCopy.textContent || '').trim().length > 220) break;
+      var words = compactWords(n);
+      if (words <= maxWords) best = n; else break;
+    }
+    return best;
+  }
+  function hideQuantityButtons(root) {
+    var buttons = [];
+    if (root.matches && root.matches('button, [role="button"]')) buttons.push(root);
+    [].forEach.call(root.querySelectorAll ? root.querySelectorAll('button, [role="button"]') : [], function (x) { buttons.push(x); });
+    buttons.forEach(function (el) {
+      var txt = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!/^(?:\+|−|–|-|increase(?: quantity)?|decrease(?: quantity)?)$/i.test(txt)) return;
+      var n = el.parentElement, best = null;
+      for (var i = 0; n && n !== root && i < 4; i++, n = n.parentElement) {
+        if (n.querySelector('h1,h2,h3')) break;
+        var peers = n.querySelectorAll('button, [role="button"]'), hasPlus = false, hasMinus = false;
+        [].forEach.call(peers, function (b) {
+          var t = (b.getAttribute('aria-label') || b.textContent || '').replace(/\s+/g, ' ').trim();
+          if (/^(?:\+|increase(?: quantity)?)$/i.test(t)) hasPlus = true;
+          if (/^(?:−|–|-|decrease(?: quantity)?)$/i.test(t)) hasMinus = true;
+        });
+        if (hasPlus && hasMinus && compactWords(n) <= 16) { best = n; break; }
+      }
+      (best || el).setAttribute('data-kc-archive-buy', '1');
     });
-    // Product option / quantity inputs have no archival purpose. Hide their compact field wrapper,
-    // never a description block or a container with a heading.
-    [].forEach.call(root.querySelectorAll('select, input[type="number"], input[type="radio"]'), function (el) {
+  }
+  function hideTicketHeadings(root) {
+    // Hide only the exact Square ticket labels themselves. Never walk outward from them:
+    // the surrounding wrapper can contain the historical program description.
+    var rules = [
+      /^this event has ended[.!]?$/i,
+      /^select an option$/i,
+      /^date\s*&\s*time$/i,
+      /^choose (?:a |an )?(?:date|time|ticket|option)$/i
+    ];
+    var labels = [];
+    if (root.matches && root.matches('h2,h3,h4,h5,p,span,div,label')) labels.push(root);
+    [].forEach.call(root.querySelectorAll ? root.querySelectorAll('h2,h3,h4,h5,p,span,div,label') : [], function (x) { labels.push(x); });
+    labels.forEach(function (el) {
+      if (el.closest('.kc-archive-leaf, header, nav, footer')) return;
+      var txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!txt || txt.length > 70 || el.children.length > 3) return;
+      for (var i = 0; i < rules.length; i++) if (rules[i].test(txt)) {
+        el.setAttribute('data-kc-archive-buy', '1');
+        break;
+      }
+    });
+  }
+
+  function stickyActionWrap(el) {
+    var n = el;
+    for (var i = 0; n && n !== D.body && i < 5; i++, n = n.parentElement) {
+      if (n.matches && n.matches('header, nav, footer, .kc-archive-leaf')) break;
+      var cs;
+      try { cs = getComputedStyle(n); } catch (e) { cs = null; }
+      if (cs && /^(?:fixed|sticky)$/.test(cs.position)) {
+        var r = n.getBoundingClientRect ? n.getBoundingClientRect() : null;
+        if (!r || r.height <= 190) return n;
+      }
+    }
+    return el;
+  }
+  function hideGlobalArchiveActions(scope) {
+    // Square's mobile Attend/Register bar can be rendered outside <main>. Search only the supplied
+    // subtree and only hide a matching action outside the product block when it is actually fixed/sticky.
+    var base = scope && scope.querySelectorAll ? scope : D;
+    var list = [];
+    if (base.matches && base.matches('button, input[type="submit"], input[type="button"], [role="button"]')) list.push(base);
+    [].forEach.call(base.querySelectorAll ? base.querySelectorAll('button, input[type="submit"], input[type="button"], [role="button"]') : [], function (x) { list.push(x); });
+    list.forEach(function (el) {
+      if (el.closest('header, nav, footer, .kc-archive-leaf') || !exactAction(el)) return;
+      if (liveRoot && liveRoot.contains(el)) { el.setAttribute('data-kc-archive-buy', '1'); return; }
+      var wrap = stickyActionWrap(el);
+      if (wrap !== el) wrap.setAttribute('data-kc-archive-buy', '1');
+    });
+  }
+  function hideCommerce(root, scope) {
+    if (!root) return;
+    var base = scope && scope.querySelectorAll && (scope === root || root.contains(scope)) ? scope : root;
+    var controls = [];
+    if (base.matches && base.matches('button, input[type="submit"], input[type="button"], [role="button"]')) controls.push(base);
+    [].forEach.call(base.querySelectorAll ? base.querySelectorAll('button, input[type="submit"], input[type="button"], [role="button"]') : [], function (x) { controls.push(x); });
+    controls.forEach(function (el) {
+      if (el.closest('header, nav, footer, .kc-archive-leaf') || !exactAction(el)) return;
+      el.setAttribute('data-kc-archive-buy', '1');
+    });
+
+    var fields = [];
+    if (base.matches && base.matches('select, input[type="number"], input[type="radio"]')) fields.push(base);
+    [].forEach.call(base.querySelectorAll ? base.querySelectorAll('select, input[type="number"], input[type="radio"]') : [], function (x) { fields.push(x); });
+    fields.forEach(function (el) {
       if (el.closest('.kc-archive-leaf, header, nav, footer')) return;
       var wrap = fieldWrap(el, root);
       if (wrap) wrap.setAttribute('data-kc-archive-buy', '1');
     });
-    // Square may render the price separately from the action form. Restrict this to elements whose
-    // complete visible text is only a currency price/range; ordinary description copy is untouched.
-    [].forEach.call(root.querySelectorAll('[itemprop="price"], [data-testid="price"], [data-test="price"], [aria-label="Price"], h2, h3, p, span, div'), function (el) {
-      if (exactPriceText(el)) el.setAttribute('data-kc-archive-buy', '1');
-    });
+
+    // Quantity and ticket labels are handled only in the changed subtree when possible.
+    hideQuantityButtons(base);
+    hideTicketHeadings(base);
+
+    var prices = [];
+    if (base.matches && base.matches('[itemprop="price"], [data-testid="price"], [data-test="price"], [aria-label="Price"], h2, h3, p, span, div')) prices.push(base);
+    [].forEach.call(base.querySelectorAll ? base.querySelectorAll('[itemprop="price"], [data-testid="price"], [data-test="price"], [aria-label="Price"], h2, h3, p, span, div') : [], function (x) { prices.push(x); });
+    prices.forEach(function (el) { if (exactPriceText(el)) el.setAttribute('data-kc-archive-buy', '1'); });
   }
+  function scrubAdded(node) {
+    if (!node || node.nodeType !== 1 || !live || !liveRoot) return;
+    // If Square replaced the product block, let archive() reacquire and validate the new block.
+    if (!D.documentElement.contains(liveRoot)) { setTimeout(function () { try { archive(); } catch (e) {} }, 0); return; }
+    if (node === liveRoot || liveRoot.contains(node)) hideCommerce(liveRoot, node);
+    hideGlobalArchiveActions(node);
+  }
+  function startTicketWatch() {
+    if (ticketMO || !window.MutationObserver || !D.body) return;
+    ticketMO = new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) {
+        var added = muts[i].addedNodes;
+        for (var j = 0; added && j < added.length; j++) scrubAdded(added[j]);
+      }
+    });
+    // Child insertions only: no attribute/style observation and no whole-page rescans on scroll.
+    ticketMO.observe(D.body, { childList: true, subtree: true });
+  }
+  function stopTicketWatch() {
+    if (ticketMO) { try { ticketMO.disconnect(); } catch (e) {} ticketMO = null; }
+  }
+
   function themeHtml(data) {
     return (data.themes || []).map(function (x) {
       if (W.lexiconUrl) return '<li><a class="kc-archive-theme" href="' + esc(W.lexiconUrl) + '#kc-' + esc(String(x).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '">' + esc(x) + '</a></li>';
@@ -3776,10 +3897,11 @@ a.kc-archive-theme:hover{text-decoration:underline!important;text-underline-offs
     return p;
   }
   function teardown() {
+    stopTicketWatch();
     if (D.documentElement.getAttribute('data-kc-page') === 'archive') D.documentElement.removeAttribute('data-kc-page');
     [].forEach.call(D.querySelectorAll('.kc-archive-leaf, .kc-archive-rubric'), function (n) { if (n.parentNode) n.parentNode.removeChild(n); });
     [].forEach.call(D.querySelectorAll('[data-kc-archive-buy]'), function (n) { n.removeAttribute('data-kc-archive-buy'); });
-    live = null;
+    live = null; liveRoot = null;
   }
   function archive() {
     var path = clean(location.pathname || '/'), data = getResource(path);
@@ -3789,9 +3911,11 @@ a.kc-archive-theme:hover{text-decoration:underline!important;text-underline-offs
     if (!root || !titleFits(root, data)) return;
     var h1 = root.querySelector('h1');
     if (!h1) return;
-    live = path;
+    live = path; liveRoot = root;
     if (D.documentElement.getAttribute('data-kc-page') !== 'archive') D.documentElement.setAttribute('data-kc-page', 'archive');
     hideCommerce(root);
+    hideGlobalArchiveActions(D);
+    startTicketWatch();
     if (!D.querySelector('.kc-archive-rubric')) {
       var rubric = makeRubric();
       h1.parentNode.insertBefore(rubric, h1);
@@ -3814,6 +3938,9 @@ a.kc-archive-theme:hover{text-decoration:underline!important;text-underline-offs
     base.applied = D.documentElement.getAttribute('data-kc-page') === 'archive' && !!D.querySelector('.kc-archive-leaf');
     base.reason = base.applied ? 'applied' : 'waiting for archive pass';
     base.squareTitle = got;
+    base.hiddenTicketNodes = D.querySelectorAll('[data-kc-archive-buy="1"]').length;
+    base.ticketWatcher = !!ticketMO;
+    base.ticketWatcherMode = ticketMO ? 'added-nodes-only' : 'off';
     return base;
   };
 
@@ -3857,5 +3984,5 @@ a.kc-archive-theme:hover{text-decoration:underline!important;text-underline-offs
   try { archive(); } catch (e) { if (window.console) console.warn('KCFOJ archive:', e); }
 })();
 
-// end of kcfoj-polish v3.4.4
+// end of kcfoj-polish v3.4.7
 // (padding: losing these last lines in a copy and paste does no harm)
